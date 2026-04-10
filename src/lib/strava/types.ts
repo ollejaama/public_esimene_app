@@ -20,6 +20,7 @@ export interface StravaActivity {
   sport_type: string
   start_date: string
   elapsed_time: number
+  moving_time: number
   distance: number
   average_heartrate?: number
   max_heartrate?: number
@@ -31,6 +32,18 @@ export interface StravaActivity {
   map?: {
     summary_polyline?: string
   }
+}
+
+export interface StravaLap {
+  id: number
+  lap_index: number
+  name: string
+  elapsed_time: number
+  moving_time: number
+  distance: number
+  average_speed: number
+  average_heartrate?: number
+  max_heartrate?: number
 }
 
 export interface StravaStream {

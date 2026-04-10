@@ -28,7 +28,7 @@ export function groupByWeek(activities: Activity[], sports?: string[]): WeeklyVo
       : (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other')
 
     if (!sports || sports.includes(sportKey)) {
-      const hours = activity.elapsed_time / 3600
+      const hours = (activity.moving_time ?? activity.elapsed_time) / 3600
       bar[sportKey] = ((bar[sportKey] as number) ?? 0) + hours
     }
   }

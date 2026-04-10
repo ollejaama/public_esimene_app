@@ -18,6 +18,7 @@ export interface Activity {
   custom_sport_tag: string | null
   start_date: string
   elapsed_time: number
+  moving_time: number | null
   distance: number
   average_hr: number | null
   max_hr: number | null
@@ -57,6 +58,19 @@ export interface HRZoneSettings {
   zone4_name: string
   zone5_name: string
   updated_at: string
+}
+
+export interface ActivityLap {
+  id: string
+  activity_id: string
+  user_id: string
+  lap_index: number
+  distance: number
+  elapsed_time: number
+  moving_time: number | null
+  average_speed: number | null
+  average_hr: number | null
+  max_hr: number | null
 }
 
 export interface SessionPayload {

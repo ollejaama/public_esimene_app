@@ -56,6 +56,30 @@ export function HRZoneForm({ initialZones }: HRZoneFormProps) {
           </tr>
         </thead>
         <tbody className="divide-y divide-[#f0f0f0]">
+          {/* Zone 0 — fixed, non-editable */}
+          <tr>
+            <td className="py-2 pr-3">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: '#94a3b8' }} />
+            </td>
+            <td className="py-2 pr-4 text-gray-400">Zone 0</td>
+            <td className="py-2 pr-4">
+              <input
+                type="text"
+                value="Zone 0"
+                disabled
+                className="w-20 border border-gray-100 rounded px-2 py-1 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
+              />
+            </td>
+            <td className="py-2 pr-4">
+              <input
+                type="number"
+                value={99}
+                disabled
+                className="w-20 border border-gray-100 rounded px-2 py-1 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
+              />
+            </td>
+            <td className="py-2 text-gray-400 text-xs">1 — 99 bpm</td>
+          </tr>
           {zoneFields.map((z) => (
             <tr key={z.index}>
               <td className="py-2 pr-3">

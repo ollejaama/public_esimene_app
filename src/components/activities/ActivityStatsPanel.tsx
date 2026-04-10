@@ -44,7 +44,7 @@ export function ActivityStatsPanel({ activity }: ActivityStatsPanelProps) {
   const stats: Stat[] = [
     { label: 'Sport', value: getSportLabel(activity) },
     { label: 'Date', value: formatDateFull(activity.start_date) },
-    { label: 'Duration', value: formatDuration(activity.elapsed_time) },
+    { label: 'Duration', value: formatDuration(activity.moving_time ?? activity.elapsed_time) },
     { label: 'Distance', value: formatDistance(activity.distance) },
     { label: 'Elevation gain', value: activity.total_elevation_gain ? `${Math.round(activity.total_elevation_gain)} m` : '—' },
     { label: 'Average HR', value: activity.average_hr ? `${Math.round(activity.average_hr)} bpm` : '—' },

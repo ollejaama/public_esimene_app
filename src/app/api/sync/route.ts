@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionFromRequest } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
-import { getValidAccessToken, getActivities, getHRStream, getGPSStream } from '@/lib/strava/api'
+import { getValidAccessToken, getActivities, getHRStream, getGPSStream, getLaps } from '@/lib/strava/api'
 import { setSyncProgress, clearSyncProgress } from '@/lib/sync/store'
 
 const BATCH_SIZE = 50
 const RATE_LIMIT_THRESHOLD = 85  // pause if we've used this many requests per 15min
 const RATE_LIMIT_WAIT_SEC = 60   // wait 60s when rate limited
+
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const session = await getSessionFromRequest(req)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const db = createServiceClient()
+  const { data } = await db
+    .from('profiles')
+    .select('last_synced_at')
+    .eq('user_id', session.userId)
+    .single()
+  return NextResponse.json({ lastSyncedAt: data?.last_synced_at ?? null })
+}
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const session = await getSessionFromRequest(req)
@@ -46,6 +58,7 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
     let totalSynced = 0
     let hrFetched = 0
     let gpsFetched = 0
+    let lapsFetched = 0
     let skipped = 0
 
     while (true) {
@@ -82,6 +95,7 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
         sport_type: a.sport_type,
         start_date: a.start_date,
         elapsed_time: a.elapsed_time,
+        moving_time: a.moving_time ?? null,
         distance: a.distance ?? 0,
         average_hr: a.average_heartrate ?? null,
         max_hr: a.max_heartrate ?? null,
@@ -101,30 +115,25 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
         // Re-check access token freshness for each stream batch
         const token = await getValidAccessToken(userId)
 
-        if (activity.has_heartrate && (activity.average_heartrate ?? 0) > 0) {
-          const { data: existing } = await db
-            .from('activity_hr_streams')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('activity_id', (await db
-              .from('activities')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('strava_id', activity.id)
-              .single()
-            ).data?.id)
-            .maybeSingle()
+        // Look up internal activity ID once, reuse for all stream types
+        const { data: actRow } = await db
+          .from('activities')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('strava_id', activity.id)
+          .single()
 
-          if (!existing) {
-            const hrData = await getHRStream(token, activity.id)
-            if (hrData) {
-              const { data: actRow } = await db
-                .from('activities')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('strava_id', activity.id)
-                .single()
-              if (actRow) {
+        if (actRow) {
+          if (activity.has_heartrate && (activity.average_heartrate ?? 0) > 0) {
+            const { data: existingHR } = await db
+              .from('activity_hr_streams')
+              .select('id')
+              .eq('activity_id', actRow.id)
+              .maybeSingle()
+
+            if (!existingHR) {
+              const hrData = await getHRStream(token, activity.id)
+              if (hrData) {
                 await db.from('activity_hr_streams').upsert({
                   activity_id: actRow.id,
                   user_id: userId,
@@ -134,25 +143,17 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
               }
             }
           }
-        }
 
-        if (activity.map?.summary_polyline) {
-          const { data: existingGPS } = await db
-            .from('activity_gps_streams')
-            .select('id')
-            .eq('user_id', userId)
-            .maybeSingle()
+          if (activity.map?.summary_polyline) {
+            const { data: existingGPS } = await db
+              .from('activity_gps_streams')
+              .select('id')
+              .eq('activity_id', actRow.id)
+              .maybeSingle()
 
-          if (!existingGPS) {
-            const gpsData = await getGPSStream(token, activity.id)
-            if (gpsData) {
-              const { data: actRow } = await db
-                .from('activities')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('strava_id', activity.id)
-                .single()
-              if (actRow) {
+            if (!existingGPS) {
+              const gpsData = await getGPSStream(token, activity.id)
+              if (gpsData) {
                 await db.from('activity_gps_streams').upsert({
                   activity_id: actRow.id,
                   user_id: userId,
@@ -162,14 +163,44 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
               }
             }
           }
+
+          // Fetch laps if not already stored
+          const { data: existingLaps } = await db
+            .from('activity_laps')
+            .select('id')
+            .eq('activity_id', actRow.id)
+            .limit(1)
+            .maybeSingle()
+
+          if (!existingLaps) {
+            const lapsData = await getLaps(token, activity.id)
+            if (lapsData && lapsData.length > 0) {
+              await db.from('activity_laps').upsert(
+                lapsData.map((l) => ({
+                  activity_id: actRow.id,
+                  user_id: userId,
+                  lap_index: l.lap_index,
+                  distance: l.distance ?? 0,
+                  elapsed_time: l.elapsed_time,
+                  moving_time: l.moving_time ?? null,
+                  average_speed: l.average_speed ?? null,
+                  average_hr: l.average_heartrate ?? null,
+                  max_hr: l.max_heartrate ?? null,
+                })),
+                { onConflict: 'activity_id,lap_index' }
+              )
+              lapsFetched++
+            }
+          }
         }
 
         setSyncProgress(userId, {
           activitiesSynced: totalSynced,
           hrStreamsFetched: hrFetched,
           gpsStreamsFetched: gpsFetched,
+          lapsFetched,
           activitiesSkipped: skipped,
-          message: `Synced ${totalSynced} activities, ${hrFetched} HR streams, ${gpsFetched} GPS streams`,
+          message: `Synced ${totalSynced} activities, ${hrFetched} HR, ${gpsFetched} GPS, ${lapsFetched} laps`,
         })
       }
 
@@ -191,8 +222,9 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
       activitiesSynced: totalSynced,
       hrStreamsFetched: hrFetched,
       gpsStreamsFetched: gpsFetched,
+      lapsFetched,
       activitiesSkipped: skipped,
-      message: `Sync complete — ${totalSynced} activities, ${hrFetched} HR streams, ${gpsFetched} GPS streams`,
+      message: `Sync complete — ${totalSynced} activities, ${hrFetched} HR, ${gpsFetched} GPS, ${lapsFetched} laps`,
     })
   } catch (err) {
     console.error('Sync error:', err)

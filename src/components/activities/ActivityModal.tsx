@@ -3,10 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { Spinner } from '@/components/ui/Spinner'
-import { ActivityStatsPanel } from './ActivityStatsPanel'
-import { HRZoneTableActivity } from './HRZoneTableActivity'
-import { GPSMap } from './GPSMap'
-import { Activity } from '@/lib/supabase/types'
+import { ActivityContent } from './ActivityContent'
+import { Activity, ActivityLap } from '@/lib/supabase/types'
 import { ZoneRow } from '@/lib/analytics/hrZones'
 
 interface ActivityModalProps {
@@ -18,6 +16,8 @@ interface ActivityDetail {
   activity: Activity
   zoneRows: ZoneRow[]
   latlng: [number, number][] | null
+  hrData: number[] | null
+  laps: ActivityLap[]
 }
 
 export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
@@ -44,6 +44,10 @@ export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
       })
   }, [activityId])
 
+  const activitySeconds = detail
+    ? (detail.activity.moving_time ?? detail.activity.elapsed_time)
+    : 0
+
   return (
     <Modal open={!!activityId} onClose={onClose} maxWidth="max-w-2xl">
       <div className="p-6">
@@ -54,28 +58,19 @@ export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
         )}
         {error && <p className="text-sm text-red-600">{error}</p>}
         {detail && !loading && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <h2 className="text-base font-semibold text-gray-900 pr-8">
               {detail.activity.name}
             </h2>
-
-            <ActivityStatsPanel activity={detail.activity} />
-
-            {detail.zoneRows.some((z) => z.seconds > 0) && (
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                  HR Zones
-                </h3>
-                <HRZoneTableActivity zones={detail.zoneRows} />
-              </div>
-            )}
-
-            <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                Route
-              </h3>
-              <GPSMap latlng={detail.latlng ?? []} />
-            </div>
+            <ActivityContent
+              activity={detail.activity}
+              zoneRows={detail.zoneRows}
+              latlng={detail.latlng ?? []}
+              hrData={detail.hrData}
+              laps={detail.laps}
+              activitySeconds={activitySeconds}
+              showHRChart={true}
+            />
           </div>
         )}
       </div>

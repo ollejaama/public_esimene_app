@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { refreshToken } from './auth'
-import { StravaActivity, StravaStream } from './types'
+import { StravaActivity, StravaLap, StravaStream } from './types'
 
 const STRAVA_API = 'https://www.strava.com/api/v3'
 
@@ -79,6 +79,21 @@ export async function getHRStream(
 
   const data = await res.json()
   return (data.heartrate?.data as number[]) ?? null
+}
+
+export async function getLaps(
+  accessToken: string,
+  activityId: number
+): Promise<StravaLap[] | null> {
+  const res = await fetch(
+    `${STRAVA_API}/activities/${activityId}/laps`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  )
+
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`Laps fetch failed: ${res.status}`)
+
+  return (await res.json()) as StravaLap[]
 }
 
 export async function getGPSStream(

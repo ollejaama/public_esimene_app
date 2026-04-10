@@ -38,14 +38,14 @@ export function aggregateWeek(
     const color = SPORT_COLORS[key] ?? SPORT_COLORS.Other
 
     if (existing) {
-      existing.seconds += activity.elapsed_time
+      existing.seconds += activity.moving_time ?? activity.elapsed_time
       existing.sessions += 1
     } else {
       sportMap.set(key, {
         key,
         label: key,
         color,
-        seconds: activity.elapsed_time,
+        seconds: activity.moving_time ?? activity.elapsed_time,
         sessions: 1,
       })
     }
@@ -57,7 +57,7 @@ export function aggregateWeek(
   }
 
   return {
-    totalSeconds: activities.reduce((sum, a) => sum + a.elapsed_time, 0),
+    totalSeconds: activities.reduce((sum, a) => sum + (a.moving_time ?? a.elapsed_time), 0),
     totalSessions: activities.length,
     bySport: Array.from(sportMap.values()),
     zoneSeconds: aggregateZoneSeconds(allZoneSeconds),

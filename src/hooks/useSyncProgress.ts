@@ -8,6 +8,7 @@ const DEFAULT: SyncProgress = {
   activitiesSynced: 0,
   hrStreamsFetched: 0,
   gpsStreamsFetched: 0,
+  lapsFetched: 0,
   activitiesSkipped: 0,
   totalEstimate: 0,
   message: '',

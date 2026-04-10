@@ -19,23 +19,26 @@ export async function GET(
 
   const db = createServiceClient()
 
-  const [{ data: activity }, { data: hrStream }, { data: gpsStream }, { data: zoneData }] =
+  const [{ data: activity }, { data: hrStream }, { data: gpsStream }, { data: zoneData }, { data: laps }] =
     await Promise.all([
       db.from('activities').select('*').eq('id', params.id).eq('user_id', session.userId).single(),
       db.from('activity_hr_streams').select('*').eq('activity_id', params.id).maybeSingle(),
       db.from('activity_gps_streams').select('*').eq('activity_id', params.id).maybeSingle(),
       db.from('hr_zone_settings').select('*').eq('user_id', session.userId).maybeSingle(),
+      db.from('activity_laps').select('*').eq('activity_id', params.id).order('lap_index'),
     ])
 
   if (!activity) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const zones: HRZoneSettings = zoneData ?? DEFAULT_ZONES
-  const zoneSeconds = hrStream ? computeHRZoneSeconds(hrStream.hr_data, zones) : { z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
+  const zoneSeconds = hrStream ? computeHRZoneSeconds(hrStream.hr_data, zones) : { z0: 0, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
   const zoneRows = zoneSecondsToRows(zoneSeconds, zones)
 
   return NextResponse.json({
     activity,
     zoneRows,
     latlng: gpsStream?.latlng_data ?? null,
+    hrData: hrStream?.hr_data ?? null,
+    laps: laps ?? [],
   })
 }

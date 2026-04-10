@@ -1,4 +1,4 @@
-import { ZoneRow, formatDuration } from '@/lib/analytics/hrZones'
+import { ZoneRow, formatDurationFull } from '@/lib/analytics/hrZones'
 
 interface HRZoneTableProps {
   zones: ZoneRow[]
@@ -30,7 +30,7 @@ export function HRZoneTable({ zones }: HRZoneTableProps) {
               </td>
               <td className="py-1.5 pr-4 text-gray-700">{zone.name}</td>
               <td className="py-1.5 text-right text-gray-900 font-mono text-xs tabular-nums">
-                {formatDuration(zone.seconds)}
+                {formatDurationFull(zone.seconds)}
               </td>
               <td className="py-1.5 text-right text-gray-400 text-xs w-10 pl-3">
                 {zone.percent}%
@@ -40,7 +40,7 @@ export function HRZoneTable({ zones }: HRZoneTableProps) {
           <tr className="border-t border-[#e5e5e5]">
             <td colSpan={2} className="pt-2 pb-1 text-xs text-gray-500 font-medium">Total</td>
             <td className="pt-2 pb-1 text-right text-xs font-mono font-medium text-gray-900 tabular-nums">
-              {formatDuration(totalSeconds)}
+              {formatDurationFull(totalSeconds)}
             </td>
             <td className="pt-2 pb-1 text-right text-xs text-gray-400">100%</td>
           </tr>

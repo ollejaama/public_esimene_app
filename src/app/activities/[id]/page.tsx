@@ -1,8 +1,5 @@
 import { AppShell } from '@/components/layout/AppShell'
-import { ActivityStatsPanel } from '@/components/activities/ActivityStatsPanel'
-import { HRZoneTableActivity } from '@/components/activities/HRZoneTableActivity'
-import { GPSMap } from '@/components/activities/GPSMap'
-import { SportTagSelector } from '@/components/activities/SportTagSelector'
+import { ActivityDetailClient } from '@/components/activities/ActivityDetailClient'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { computeHRZoneSeconds, zoneSecondsToRows } from '@/lib/analytics/hrZones'
@@ -22,12 +19,13 @@ export default async function ActivityDetailPage({ params }: { params: { id: str
 
   const db = createServiceClient()
 
-  const [{ data: activity }, { data: hrStream }, { data: gpsStream }, { data: zoneData }] =
+  const [{ data: activity }, { data: hrStream }, { data: gpsStream }, { data: zoneData }, { data: laps }] =
     await Promise.all([
       db.from('activities').select('*').eq('id', params.id).eq('user_id', session.userId).single(),
       db.from('activity_hr_streams').select('*').eq('activity_id', params.id).maybeSingle(),
       db.from('activity_gps_streams').select('*').eq('activity_id', params.id).maybeSingle(),
       db.from('hr_zone_settings').select('*').eq('user_id', session.userId).maybeSingle(),
+      db.from('activity_laps').select('*').eq('activity_id', params.id).order('lap_index'),
     ])
 
   if (!activity) notFound()
@@ -35,7 +33,7 @@ export default async function ActivityDetailPage({ params }: { params: { id: str
   const zones: HRZoneSettings = zoneData ?? DEFAULT_ZONES
   const zoneSeconds = hrStream
     ? computeHRZoneSeconds(hrStream.hr_data, zones)
-    : { z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
+    : { z0: 0, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
   const zoneRows = zoneSecondsToRows(zoneSeconds, zones)
 
   return (
@@ -46,29 +44,13 @@ export default async function ActivityDetailPage({ params }: { params: { id: str
         </Link>
       </div>
 
-      <div className="max-w-2xl space-y-6">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 mb-1">{activity.name}</h1>
-          <SportTagSelector activityId={activity.id} currentTag={activity.custom_sport_tag} sportType={activity.sport_type} />
-        </div>
-
-        <div className="border border-[#e5e5e5] rounded-lg p-5">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Stats</h2>
-          <ActivityStatsPanel activity={activity} />
-        </div>
-
-        {zoneRows.some((z) => z.seconds > 0) && (
-          <div className="border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">HR Zones</h2>
-            <HRZoneTableActivity zones={zoneRows} />
-          </div>
-        )}
-
-        <div className="border border-[#e5e5e5] rounded-lg p-5">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Route</h2>
-          <GPSMap latlng={gpsStream?.latlng_data ?? []} />
-        </div>
-      </div>
+      <ActivityDetailClient
+        activity={activity}
+        zoneRows={zoneRows}
+        latlng={gpsStream?.latlng_data ?? []}
+        hrData={hrStream?.hr_data ?? null}
+        laps={laps ?? []}
+      />
     </AppShell>
   )
 }
