@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Modal } from '@/components/ui/Modal'
 import { Spinner } from '@/components/ui/Spinner'
 import { ActivityContent } from './ActivityContent'
@@ -59,9 +60,17 @@ export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
         {error && <p className="text-sm text-red-600">{error}</p>}
         {detail && !loading && (
           <div className="space-y-4">
-            <h2 className="text-base font-semibold text-gray-900 pr-8">
-              {detail.activity.name}
-            </h2>
+            <div className="flex items-start justify-between pr-8">
+              <h2 className="text-base font-semibold text-gray-900">
+                {detail.activity.name}
+              </h2>
+              <Link
+                href={`/activities/${activityId}`}
+                className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 shrink-0 ml-3 mt-0.5 transition-colors"
+              >
+                ↗ full view
+              </Link>
+            </div>
             <ActivityContent
               activity={detail.activity}
               zoneRows={detail.zoneRows}

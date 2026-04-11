@@ -17,20 +17,44 @@ export interface ZoneRow {
   percent: number
 }
 
-// Classify every second in the HR stream into a zone.
-// Zone 0 is fixed: 1–99 bpm (non-editable)
-export function computeHRZoneSeconds(hrData: number[], zones: HRZoneSettings): ZoneSeconds {
-  const result: ZoneSeconds = { z0: 0, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
+// Classify every sample in the HR stream into a zone.
+// Zone 0 (I0) is fixed: 0–99 bpm (non-editable).
+// If activitySeconds is provided the zone totals are scaled proportionally so
+// they sum exactly to activitySeconds, correcting for streams sampled at less
+// than 1 sample/second (Strava medium/low resolution).
+export function computeHRZoneSeconds(
+  hrData: number[],
+  zones: HRZoneSettings,
+  activitySeconds?: number
+): ZoneSeconds {
+  const counts: ZoneSeconds = { z0: 0, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
   for (const bpm of hrData) {
-    if (bpm <= 0) continue
-    if (bpm <= 99) result.z0++
-    else if (bpm <= zones.zone1_max) result.z1++
-    else if (bpm <= zones.zone2_max) result.z2++
-    else if (bpm <= zones.zone3_max) result.z3++
-    else if (bpm <= zones.zone4_max) result.z4++
-    else result.z5++
+    if (bpm <= 0) { counts.z0++; continue }
+    if (bpm <= 99) counts.z0++
+    else if (bpm <= zones.zone1_max) counts.z1++
+    else if (bpm <= zones.zone2_max) counts.z2++
+    else if (bpm <= zones.zone3_max) counts.z3++
+    else if (bpm <= zones.zone4_max) counts.z4++
+    else counts.z5++
   }
-  return result
+
+  if (activitySeconds !== undefined && hrData.length > 0) {
+    const scale = activitySeconds / hrData.length
+    const scaled: ZoneSeconds = {
+      z0: Math.round(counts.z0 * scale),
+      z1: Math.round(counts.z1 * scale),
+      z2: Math.round(counts.z2 * scale),
+      z3: Math.round(counts.z3 * scale),
+      z4: Math.round(counts.z4 * scale),
+      z5: Math.round(counts.z5 * scale),
+    }
+    // Absorb rounding error into z0 so total == activitySeconds exactly
+    const total = scaled.z0 + scaled.z1 + scaled.z2 + scaled.z3 + scaled.z4 + scaled.z5
+    scaled.z0 += activitySeconds - total
+    return scaled
+  }
+
+  return counts
 }
 
 export function aggregateZoneSeconds(streams: ZoneSeconds[]): ZoneSeconds {
@@ -51,7 +75,7 @@ export function zoneSecondsToRows(totals: ZoneSeconds, zones: HRZoneSettings): Z
   const total = totals.z0 + totals.z1 + totals.z2 + totals.z3 + totals.z4 + totals.z5
 
   const zone0Row: ZoneRow = {
-    name: 'Zone 0',
+    name: 'I0',
     color: '#94a3b8',
     seconds: totals.z0,
     percent: total > 0 ? Math.round((totals.z0 / total) * 100) : 0,

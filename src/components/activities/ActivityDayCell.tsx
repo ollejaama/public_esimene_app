@@ -53,7 +53,7 @@ export function ActivityDayCell({ date, activities, isCurrentMonth, onActivityCl
                 className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: getSportColor(activity) }}
               />
-              <span className="truncate">{formatDuration(activity.elapsed_time)}</span>
+              <span className="truncate">{formatDuration(activity.moving_time ?? activity.elapsed_time)}</span>
             </span>
           </button>
         ))}

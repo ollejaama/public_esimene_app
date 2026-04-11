@@ -51,8 +51,9 @@ export function aggregateWeek(
     }
 
     const hrData = streamMap.get(activity.id)
+    const activitySeconds = activity.moving_time ?? activity.elapsed_time
     if (hrData) {
-      allZoneSeconds.push(computeHRZoneSeconds(hrData, zones))
+      allZoneSeconds.push(computeHRZoneSeconds(hrData, zones, activitySeconds))
     }
   }
 

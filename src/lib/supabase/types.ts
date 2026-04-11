@@ -28,6 +28,7 @@ export interface Activity {
   total_elevation_gain: number | null
   has_hr_data: boolean
   has_gps_data: boolean
+  notes: string | null
   created_at: string
 }
 

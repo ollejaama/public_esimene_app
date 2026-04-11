@@ -5,6 +5,7 @@ import { Activity, ActivityLap } from '@/lib/supabase/types'
 import { ZoneRow } from '@/lib/analytics/hrZones'
 import { ActivityContent } from './ActivityContent'
 import { SportTagSelector } from './SportTagSelector'
+import { NotesEditor } from './NotesEditor'
 
 interface ActivityDetailClientProps {
   activity: Activity
@@ -34,6 +35,7 @@ export function ActivityDetailClient({ activity, zoneRows, latlng, hrData, laps 
           </h1>
         </button>
         <SportTagSelector activityId={activity.id} currentTag={activity.custom_sport_tag} sportType={activity.sport_type} />
+        <NotesEditor activityId={activity.id} initialNotes={activity.notes} />
       </div>
 
       <ActivityContent
