@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -15,6 +15,7 @@ L.Icon.Default.mergeOptions({
 
 interface Props {
   latlng: [number, number][]
+  highlightIndex?: number
 }
 
 function FitBounds({ positions }: { positions: L.LatLngTuple[] }) {
@@ -27,9 +28,14 @@ function FitBounds({ positions }: { positions: L.LatLngTuple[] }) {
   return null
 }
 
-export default function LeafletMapInner({ latlng }: Props) {
+export default function LeafletMapInner({ latlng, highlightIndex }: Props) {
   const positions: L.LatLngTuple[] = latlng.map(([lat, lng]) => [lat, lng])
   const center: L.LatLngTuple = positions[0] ?? [0, 0]
+
+  const highlightPos =
+    highlightIndex !== undefined && highlightIndex >= 0 && highlightIndex < positions.length
+      ? positions[highlightIndex]
+      : null
 
   return (
     <div style={{ height: 300, borderRadius: 8, overflow: 'hidden' }}>
@@ -39,6 +45,18 @@ export default function LeafletMapInner({ latlng }: Props) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <Polyline positions={positions} color="#3b82f6" weight={3} />
+        {/* Start marker */}
+        {positions.length > 0 && (
+          <CircleMarker center={positions[0]} radius={6} pathOptions={{ color: '#22c55e', fillColor: '#22c55e', fillOpacity: 1 }} />
+        )}
+        {/* End marker */}
+        {positions.length > 1 && (
+          <CircleMarker center={positions[positions.length - 1]} radius={6} pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 1 }} />
+        )}
+        {/* Slider position marker */}
+        {highlightPos && (
+          <CircleMarker center={highlightPos} radius={5} pathOptions={{ color: '#f97316', fillColor: '#f97316', fillOpacity: 1 }} />
+        )}
         <FitBounds positions={positions} />
       </MapContainer>
     </div>

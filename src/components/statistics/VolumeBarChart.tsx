@@ -5,10 +5,19 @@ import {
 } from 'recharts'
 import { WeeklyVolumeBar } from '@/lib/analytics/volumeByWeek'
 import { getSportColor } from '@/lib/analytics/volumeByWeek'
+import { TimeRange } from './TimeRangeSelector'
 
 interface VolumeBarChartProps {
   data: WeeklyVolumeBar[]
   sports: string[]
+  range: TimeRange
+}
+
+const BAR_SIZE: Record<TimeRange, number> = {
+  week: 24,
+  month: 8,
+  year: 20,
+  all: 16,
 }
 
 function CustomTooltip({ active, payload, label }: any) {
@@ -27,17 +36,17 @@ function CustomTooltip({ active, payload, label }: any) {
   )
 }
 
-export function VolumeBarChart({ data, sports }: VolumeBarChartProps) {
+export function VolumeBarChart({ data, sports, range }: VolumeBarChartProps) {
   if (data.length === 0) {
     return <div className="h-48 flex items-center justify-center text-sm text-gray-400">No data</div>
   }
 
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={data} barSize={16} barGap={2}>
+      <BarChart data={data} barSize={BAR_SIZE[range]} barGap={2}>
         <CartesianGrid vertical={false} stroke="#f0f0f0" />
         <XAxis
-          dataKey="weekLabel"
+          dataKey="label"
           tick={{ fontSize: 11, fill: '#9ca3af' }}
           axisLine={false}
           tickLine={false}

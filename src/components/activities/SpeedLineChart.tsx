@@ -2,21 +2,21 @@
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 
-interface HRLineChartProps {
-  hrData: number[]
+interface SpeedLineChartProps {
+  speedData: number[]   // km/h values, one per second
+  isRunning: boolean    // true → display as min/km pace, false → km/h
   highlightIndex?: number
 }
 
-// Downsample to at most maxPoints, keeping start and end
-function downsample(data: number[], maxPoints: number): { t: number; bpm: number }[] {
+function downsample(data: number[], maxPoints: number): { t: number; v: number }[] {
   if (data.length <= maxPoints) {
-    return data.map((bpm, i) => ({ t: i, bpm }))
+    return data.map((v, i) => ({ t: i, v }))
   }
   const step = data.length / maxPoints
-  const result: { t: number; bpm: number }[] = []
+  const result: { t: number; v: number }[] = []
   for (let i = 0; i < maxPoints; i++) {
     const idx = Math.round(i * step)
-    result.push({ t: idx, bpm: data[idx] })
+    result.push({ t: idx, v: data[idx] })
   }
   return result
 }
@@ -28,8 +28,29 @@ function formatTime(seconds: number): string {
   return `${m}m`
 }
 
-export function HRLineChart({ hrData, highlightIndex }: HRLineChartProps) {
-  const points = downsample(hrData, 600)
+function formatPaceValue(minPerKm: number): string {
+  const m = Math.floor(minPerKm)
+  const s = Math.round((minPerKm - m) * 60)
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+export function SpeedLineChart({ speedData, isRunning, highlightIndex }: SpeedLineChartProps) {
+  const rawPoints = downsample(speedData, 600)
+
+  // For running, convert km/h to min/km (pace). Clamp absurd values (e.g. GPS jumps).
+  const points = isRunning
+    ? rawPoints.map(({ t, v }) => ({
+        t,
+        v: v > 0 ? Math.min(60 / v, 30) : 30, // min/km, capped at 30 min/km
+      }))
+    : rawPoints
+
+  const yDomain: [number | string, number | string] = isRunning ? ['auto', 'auto'] : [0, 'auto']
+
+  // Y-axis tick formatter
+  const tickFormatter = isRunning
+    ? (v: number) => formatPaceValue(v)
+    : (v: number) => `${v.toFixed(0)}`
 
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -44,22 +65,27 @@ export function HRLineChart({ hrData, highlightIndex }: HRLineChartProps) {
           interval="preserveStartEnd"
         />
         <YAxis
-          domain={['auto', 'auto']}
+          domain={yDomain}
+          reversed={isRunning}
           tick={{ fontSize: 10, fill: '#9ca3af' }}
           tickLine={false}
           axisLine={false}
-          width={32}
-          tickFormatter={(v) => `${v}`}
+          width={40}
+          tickFormatter={tickFormatter}
         />
         <Tooltip
-          formatter={(value) => [`${value} bpm`, 'HR']}
+          formatter={(value) =>
+            isRunning
+              ? [`${formatPaceValue(Number(value))} /km`, 'Pace']
+              : [`${Number(value).toFixed(1)} km/h`, 'Speed']
+          }
           labelFormatter={(t) => formatTime(Number(t))}
           contentStyle={{ fontSize: 11, borderRadius: 6, border: '1px solid #e5e5e5' }}
         />
         <Line
           type="monotone"
-          dataKey="bpm"
-          stroke="#ef4444"
+          dataKey="v"
+          stroke="#3b82f6"
           strokeWidth={1.5}
           dot={false}
           activeDot={{ r: 3 }}

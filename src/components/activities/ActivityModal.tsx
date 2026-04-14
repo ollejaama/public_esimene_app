@@ -65,7 +65,7 @@ export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
                 {detail.activity.name}
               </h2>
               <Link
-                href={`/activities/${activityId}`}
+                href={`/activities/${activityId}?from=activities`}
                 className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 shrink-0 ml-3 mt-0.5 transition-colors"
               >
                 ↗ full view

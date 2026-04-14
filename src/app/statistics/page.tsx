@@ -6,7 +6,7 @@ import { SportBreakdownTable } from '@/components/statistics/SportBreakdownTable
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { HRZoneSettings } from '@/lib/supabase/types'
-import { groupByWeek, getAllSportsFromActivities } from '@/lib/analytics/volumeByWeek'
+import { groupByWeek, groupByDay, groupByMonth, getAllSportsFromActivities } from '@/lib/analytics/volumeByWeek'
 import { aggregateWeek } from '@/lib/analytics/weekSummary'
 import { zoneSecondsToRows } from '@/lib/analytics/hrZones'
 import { redirect } from 'next/navigation'
@@ -71,18 +71,11 @@ export default async function StatisticsPage({
 
   const db = createServiceClient()
 
-  // For volume chart: fetch last 12 weeks/months or all activities
-  const chartStart = range === 'week'
-    ? new Date(start.getTime() - 11 * 7 * 86400000)  // 12 weeks back
-    : range === 'month'
-    ? new Date(start.getFullYear(), start.getMonth() - 11, 1)  // 12 months back
-    : start
-
   const [{ data: chartActivities }, { data: rangeActivities }, { data: zoneData }] = await Promise.all([
     db.from('activities')
       .select('*')
       .eq('user_id', session.userId)
-      .gte('start_date', chartStart.toISOString())
+      .gte('start_date', start.toISOString())
       .lt('start_date', end.toISOString())
       .order('start_date', { ascending: true }),
     db.from('activities')
@@ -102,7 +95,18 @@ export default async function StatisticsPage({
     : { data: [] }
 
   const sports = getAllSportsFromActivities(chartActivities ?? [])
-  const volumeData = groupByWeek(chartActivities ?? [], sports)
+
+  let volumeData
+  if (range === 'week') {
+    volumeData = groupByDay(chartActivities ?? [], start, end, 'weekday', sports)
+  } else if (range === 'month') {
+    volumeData = groupByDay(chartActivities ?? [], start, end, 'daynum', sports)
+  } else if (range === 'year') {
+    volumeData = groupByMonth(chartActivities ?? [], start.getFullYear(), sports)
+  } else {
+    volumeData = groupByWeek(chartActivities ?? [], sports)
+  }
+
   const summary = aggregateWeek(rangeActivities ?? [], streams ?? [], zones)
   const zoneRows = zoneSecondsToRows(summary.zoneSeconds, zones)
 
@@ -120,7 +124,7 @@ export default async function StatisticsPage({
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
             Training Volume (hours)
           </h2>
-          <VolumeBarChart data={volumeData} sports={sports} />
+          <VolumeBarChart data={volumeData} sports={sports} range={range} />
         </div>
 
         {/* Sport breakdown + HR zones */}

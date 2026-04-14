@@ -31,7 +31,8 @@ export async function GET(
   if (!activity) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const zones: HRZoneSettings = zoneData ?? DEFAULT_ZONES
-  const zoneSeconds = hrStream ? computeHRZoneSeconds(hrStream.hr_data, zones) : { z0: 0, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
+  const activitySeconds = activity.moving_time ?? activity.elapsed_time
+  const zoneSeconds = hrStream ? computeHRZoneSeconds(hrStream.hr_data, zones, activitySeconds) : { z0: 0, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
   const zoneRows = zoneSecondsToRows(zoneSeconds, zones)
 
   return NextResponse.json({

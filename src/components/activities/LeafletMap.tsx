@@ -4,12 +4,13 @@ import dynamic from 'next/dynamic'
 
 interface LeafletMapProps {
   latlng: [number, number][]
+  highlightIndex?: number
 }
 
 // Inner component — loaded client-side only (Leaflet requires DOM)
 const LeafletMapInner = dynamic(() => import('./LeafletMapInner'), { ssr: false })
 
-export function LeafletMap({ latlng }: LeafletMapProps) {
+export function LeafletMap({ latlng, highlightIndex }: LeafletMapProps) {
   if (latlng.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 bg-[#f9f9f9] rounded text-xs text-gray-400">
@@ -18,5 +19,5 @@ export function LeafletMap({ latlng }: LeafletMapProps) {
     )
   }
 
-  return <LeafletMapInner latlng={latlng} />
+  return <LeafletMapInner latlng={latlng} highlightIndex={highlightIndex} />
 }

@@ -3,12 +3,12 @@ import { SPORT_TYPE_MAP, SPORT_COLORS } from '@/lib/constants'
 import { getISOWeek } from './weekSummary'
 
 export interface WeeklyVolumeBar {
-  weekLabel: string  // "W10 2026"
-  weekStart: string  // ISO date
-  [sport: string]: number | string  // sport key → hours (number)
+  label: string      // Display label for X axis
+  periodKey: string  // Sort key (ISO date or year-week string)
+  [sport: string]: number | string
 }
 
-// Groups activities by ISO week, returns Recharts-compatible array
+// Groups activities by ISO week, returns Recharts-compatible array (no zero-fill)
 export function groupByWeek(activities: Activity[], sports?: string[]): WeeklyVolumeBar[] {
   const weekMap = new Map<string, WeeklyVolumeBar>()
 
@@ -19,7 +19,7 @@ export function groupByWeek(activities: Activity[], sports?: string[]): WeeklyVo
     const weekLabel = `W${week} ${year}`
 
     if (!weekMap.has(key)) {
-      weekMap.set(key, { weekLabel, weekStart: key })
+      weekMap.set(key, { label: weekLabel, periodKey: key })
     }
 
     const bar = weekMap.get(key)!
@@ -33,10 +33,85 @@ export function groupByWeek(activities: Activity[], sports?: string[]): WeeklyVo
     }
   }
 
-  // Sort by week
   return Array.from(weekMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, v]) => v)
+}
+
+const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/**
+ * One bar per calendar day in [rangeStart, rangeEnd).
+ * labelFormat 'weekday' → "Mon"…"Sun", 'daynum' → "1"…"31"
+ * Zero-fills days with no training.
+ */
+export function groupByDay(
+  activities: Activity[],
+  rangeStart: Date,
+  rangeEnd: Date,
+  labelFormat: 'weekday' | 'daynum',
+  sports?: string[]
+): WeeklyVolumeBar[] {
+  // Build empty bars for every day in range
+  const bars = new Map<string, WeeklyVolumeBar>()
+  const cursor = new Date(rangeStart)
+  while (cursor < rangeEnd) {
+    const key = cursor.toISOString().slice(0, 10) // "YYYY-MM-DD"
+    const dow = (cursor.getDay() + 6) % 7 // 0=Mon … 6=Sun
+    const label = labelFormat === 'weekday' ? WEEKDAY_LABELS[dow] : String(cursor.getDate())
+    bars.set(key, { label, periodKey: key })
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  for (const activity of activities) {
+    const key = activity.start_date.slice(0, 10)
+    if (!bars.has(key)) continue
+
+    const bar = bars.get(key)!
+    const sportKey = activity.custom_sport_tag
+      ? activity.custom_sport_tag
+      : (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other')
+
+    if (!sports || sports.includes(sportKey)) {
+      const hours = (activity.moving_time ?? activity.elapsed_time) / 3600
+      bar[sportKey] = ((bar[sportKey] as number) ?? 0) + hours
+    }
+  }
+
+  return Array.from(bars.values())
+}
+
+/**
+ * One bar per month (Jan–Dec) for the given year. Zero-fills months with no training.
+ */
+export function groupByMonth(
+  activities: Activity[],
+  year: number,
+  sports?: string[]
+): WeeklyVolumeBar[] {
+  const bars: WeeklyVolumeBar[] = MONTH_LABELS.map((label, i) => ({
+    label,
+    periodKey: `${year}-${String(i + 1).padStart(2, '0')}`,
+  }))
+
+  for (const activity of activities) {
+    const date = new Date(activity.start_date)
+    if (date.getFullYear() !== year) continue
+    const monthIdx = date.getMonth() // 0-based
+
+    const bar = bars[monthIdx]
+    const sportKey = activity.custom_sport_tag
+      ? activity.custom_sport_tag
+      : (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other')
+
+    if (!sports || sports.includes(sportKey)) {
+      const hours = (activity.moving_time ?? activity.elapsed_time) / 3600
+      bar[sportKey] = ((bar[sportKey] as number) ?? 0) + hours
+    }
+  }
+
+  return bars
 }
 
 export function getAllSportsFromActivities(activities: Activity[]): string[] {

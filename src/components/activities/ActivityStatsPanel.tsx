@@ -11,15 +11,16 @@ function formatDistance(meters: number): string {
   return `${(meters / 1000).toFixed(2)} km`
 }
 
-function formatPace(activity: Activity): { pace: string; speed: string } {
-  if (!activity.average_speed || activity.average_speed <= 0) return { pace: '—', speed: '—' }
+function formatSpeed(activity: Activity): string {
+  if (!activity.average_speed || activity.average_speed <= 0) return '—'
   const sport = SPORT_TYPE_MAP[activity.sport_type] ?? 'Other'
-  const kmh = (activity.average_speed * 3.6).toFixed(1)
-  const secsPerKm = 1000 / activity.average_speed
-  const m = Math.floor(secsPerKm / 60)
-  const s = Math.round(secsPerKm % 60)
-  const pace = sport === 'Running' ? `${m}:${String(s).padStart(2, '0')} /km` : '—'
-  return { pace, speed: `${kmh} km/h` }
+  if (sport === 'Running') {
+    const secsPerKm = 1000 / activity.average_speed
+    const m = Math.floor(secsPerKm / 60)
+    const s = Math.round(secsPerKm % 60)
+    return `${m}:${String(s).padStart(2, '0')} /km`
+  }
+  return `${(activity.average_speed * 3.6).toFixed(1)} km/h`
 }
 
 function formatDateFull(iso: string): string {
@@ -39,8 +40,6 @@ function getSportLabel(activity: Activity): string {
 interface Stat { label: string; value: string }
 
 export function ActivityStatsPanel({ activity }: ActivityStatsPanelProps) {
-  const { pace, speed } = formatPace(activity)
-
   const stats: Stat[] = [
     { label: 'Sport', value: getSportLabel(activity) },
     { label: 'Date', value: formatDateFull(activity.start_date) },
@@ -49,9 +48,7 @@ export function ActivityStatsPanel({ activity }: ActivityStatsPanelProps) {
     { label: 'Elevation gain', value: activity.total_elevation_gain ? `${Math.round(activity.total_elevation_gain)} m` : '—' },
     { label: 'Average HR', value: activity.average_hr ? `${Math.round(activity.average_hr)} bpm` : '—' },
     { label: 'Max HR', value: activity.max_hr ? `${Math.round(activity.max_hr)} bpm` : '—' },
-    { label: 'Avg pace', value: pace },
-    { label: 'Avg speed', value: speed },
-    { label: 'Cadence', value: activity.average_cadence ? `${Math.round(activity.average_cadence)} rpm` : '—' },
+    { label: 'Speed', value: formatSpeed(activity) },
   ]
 
   return (

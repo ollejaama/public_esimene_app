@@ -22,6 +22,10 @@ function getSportColor(activity: Activity): string {
   return SPORT_COLORS[key] ?? SPORT_COLORS.Other
 }
 
+function needsTag(activity: Activity): boolean {
+  return SPORT_TYPE_MAP[activity.sport_type] === 'Skiing' && !activity.custom_sport_tag
+}
+
 function formatDate(isoDate: string): string {
   return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(isoDate))
 }
@@ -65,17 +69,17 @@ export function ActivityBreakdownTable({ activities }: ActivityBreakdownTablePro
               </td>
               <td className="py-2 pr-4">
                 <Link
-                  href={`/activities/${activity.id}`}
+                  href={`/activities/${activity.id}?from=dashboard`}
                   className="text-gray-900 hover:underline"
                 >
                   {activity.name}
                 </Link>
               </td>
               <td className="py-2 pr-4">
-                <Badge label={getSportLabel(activity)} color={getSportColor(activity)} />
+                <Badge label={getSportLabel(activity)} color={getSportColor(activity)} muted={needsTag(activity)} />
               </td>
               <td className="py-2 text-right font-mono text-xs tabular-nums">
-                {formatDuration(activity.elapsed_time)}
+                {formatDuration(activity.moving_time ?? activity.elapsed_time)}
               </td>
               <td className="py-2 text-right text-xs text-gray-500 pl-4">
                 {formatPace(activity)}

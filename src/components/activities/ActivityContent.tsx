@@ -1,12 +1,16 @@
 'use client'
 
+import { useState, useMemo } from 'react'
 import { Activity, ActivityLap } from '@/lib/supabase/types'
 import { ZoneRow, formatDurationFull } from '@/lib/analytics/hrZones'
+import { SPORT_TYPE_MAP } from '@/lib/constants'
+import { computeSpeedKmh } from '@/lib/analytics/speed'
 import { ActivityStatsPanel } from './ActivityStatsPanel'
 import { HRZoneTableActivity } from './HRZoneTableActivity'
 import { LapTable } from './LapTable'
 import { LeafletMap } from './LeafletMap'
 import { HRLineChart } from './HRLineChart'
+import { SpeedLineChart } from './SpeedLineChart'
 
 interface ActivityContentProps {
   activity: Activity
@@ -32,6 +36,25 @@ export function ActivityContent({
   const hasHR = zoneRows.some((z) => z.seconds > 0)
   const hrCovered = zoneRows.reduce((sum, z) => sum + z.seconds, 0)
   const showMismatchNote = hasHR && activitySeconds > 0 && hrCovered < activitySeconds * 0.98
+
+  const hasGPS = latlng.length > 0
+  const isRunning = (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other') === 'Running'
+
+  // Compute speed from GPS (memoized — only when GPS data is present)
+  const speedData = useMemo(
+    () => (hasGPS ? computeSpeedKmh(latlng) : null),
+    [latlng, hasGPS]
+  )
+
+  // Slider scrub index — shared across map, HR chart, and speed chart
+  const sliderMax = Math.min(
+    hasGPS ? latlng.length - 1 : Infinity,
+    hrData ? hrData.length - 1 : Infinity
+  )
+  const [sliderIndex, setSliderIndex] = useState(0)
+
+  const showSlider = showHRChart && hasGPS && sliderMax > 0 && isFinite(sliderMax)
+  const showSpeedChart = showHRChart && hasGPS && speedData !== null
 
   return (
     <div className="space-y-6">
@@ -61,13 +84,36 @@ export function ActivityContent({
 
       <div className="border border-[#e5e5e5] rounded-lg p-5">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Route</h2>
-        <LeafletMap latlng={latlng} />
+        <LeafletMap latlng={latlng} highlightIndex={showSlider ? sliderIndex : undefined} />
+        {showSlider && (
+          <input
+            type="range"
+            min={0}
+            max={sliderMax}
+            value={sliderIndex}
+            onChange={(e) => setSliderIndex(Number(e.target.value))}
+            className="w-full mt-3 accent-orange-500"
+          />
+        )}
       </div>
 
       {showHRChart && hrData && hrData.length > 0 && (
         <div className="border border-[#e5e5e5] rounded-lg p-5">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Heart Rate</h2>
-          <HRLineChart hrData={hrData} />
+          <HRLineChart hrData={hrData} highlightIndex={showSlider ? sliderIndex : undefined} />
+        </div>
+      )}
+
+      {showSpeedChart && speedData && (
+        <div className="border border-[#e5e5e5] rounded-lg p-5">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+            {isRunning ? 'Pace' : 'Speed'}
+          </h2>
+          <SpeedLineChart
+            speedData={speedData}
+            isRunning={isRunning}
+            highlightIndex={showSlider ? sliderIndex : undefined}
+          />
         </div>
       )}
     </div>

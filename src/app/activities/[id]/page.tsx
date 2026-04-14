@@ -13,7 +13,7 @@ const DEFAULT_ZONES: HRZoneSettings = {
   zone1_name: 'I1', zone2_name: 'I2', zone3_name: 'I3', zone4_name: 'I4', zone5_name: 'I5',
 }
 
-export default async function ActivityDetailPage({ params }: { params: { id: string } }) {
+export default async function ActivityDetailPage({ params, searchParams }: { params: { id: string }, searchParams: { from?: string } }) {
   const session = await getSession()
   if (!session) redirect('/')
 
@@ -40,8 +40,11 @@ export default async function ActivityDetailPage({ params }: { params: { id: str
   return (
     <AppShell>
       <div className="mb-6">
-        <Link href="/activities" className="text-xs text-gray-400 hover:text-gray-600">
-          ← Back to Activities
+        <Link
+          href={searchParams.from === 'dashboard' ? '/dashboard' : '/activities'}
+          className="text-xs text-gray-400 hover:text-gray-600"
+        >
+          {searchParams.from === 'dashboard' ? '← Back to Dashboard' : '← Back to Activities'}
         </Link>
       </div>
 
