@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { Activity, ActivityLap } from '@/lib/supabase/types'
 import { ZoneRow } from '@/lib/analytics/hrZones'
+import { getActivityTitle, effectiveDuration } from '@/lib/activity'
 import { ActivityContent } from './ActivityContent'
 import { SportTagSelector } from './SportTagSelector'
+import { StrengthSubtypeSelector } from './StrengthSubtypeSelector'
 import { NotesEditor } from './NotesEditor'
 
 interface ActivityDetailClientProps {
@@ -13,11 +15,13 @@ interface ActivityDetailClientProps {
   latlng: [number, number][]
   hrData: number[] | null
   laps: ActivityLap[]
+  elevationData: number[] | null
+  defaultExpanded?: boolean
 }
 
-export function ActivityDetailClient({ activity, zoneRows, latlng, hrData, laps }: ActivityDetailClientProps) {
-  const [expanded, setExpanded] = useState(false)
-  const activitySeconds = activity.moving_time ?? activity.elapsed_time
+export function ActivityDetailClient({ activity, zoneRows, latlng, hrData, laps, elevationData, defaultExpanded }: ActivityDetailClientProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded ?? false)
+  const activitySeconds = effectiveDuration(activity)
 
   return (
     <div className={expanded ? 'space-y-6' : 'max-w-2xl space-y-6'}>
@@ -28,13 +32,14 @@ export function ActivityDetailClient({ activity, zoneRows, latlng, hrData, laps 
           title={expanded ? 'Collapse view' : 'Expand view'}
         >
           <h1 className="text-xl font-semibold text-gray-900 mb-1 group-hover:text-gray-600 transition-colors cursor-pointer">
-            {activity.name}
+            {getActivityTitle(activity)}
             <span className="ml-2 text-xs font-normal text-gray-300 group-hover:text-gray-400">
               {expanded ? '↙ collapse' : '↗ expand'}
             </span>
           </h1>
         </button>
         <SportTagSelector activityId={activity.id} currentTag={activity.custom_sport_tag} sportType={activity.sport_type} />
+        <StrengthSubtypeSelector activityId={activity.id} currentTag={activity.custom_sport_tag} sportType={activity.sport_type} />
         <NotesEditor activityId={activity.id} initialNotes={activity.notes} />
       </div>
 
@@ -46,6 +51,7 @@ export function ActivityDetailClient({ activity, zoneRows, latlng, hrData, laps 
         laps={laps}
         activitySeconds={activitySeconds}
         showHRChart={expanded}
+        elevationData={elevationData}
       />
     </div>
   )

@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { ActivityContent } from './ActivityContent'
 import { Activity, ActivityLap } from '@/lib/supabase/types'
 import { ZoneRow } from '@/lib/analytics/hrZones'
+import { getActivityTitle } from '@/lib/activity'
 
 interface ActivityModalProps {
   activityId: string | null
@@ -17,6 +18,7 @@ interface ActivityDetail {
   activity: Activity
   zoneRows: ZoneRow[]
   latlng: [number, number][] | null
+  elevation: number[] | null
   hrData: number[] | null
   laps: ActivityLap[]
 }
@@ -62,13 +64,13 @@ export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
           <div className="space-y-4">
             <div className="flex items-start justify-between pr-8">
               <h2 className="text-base font-semibold text-gray-900">
-                {detail.activity.name}
+                {getActivityTitle(detail.activity)}
               </h2>
               <Link
-                href={`/activities/${activityId}?from=activities`}
+                href={`/activities/${activityId}?from=activities&expanded=true`}
                 className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 shrink-0 ml-3 mt-0.5 transition-colors"
               >
-                ↗ full view
+                ↗ expanded view
               </Link>
             </div>
             <ActivityContent
@@ -79,6 +81,7 @@ export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
               laps={detail.laps}
               activitySeconds={activitySeconds}
               showHRChart={true}
+              elevationData={detail.elevation}
             />
           </div>
         )}

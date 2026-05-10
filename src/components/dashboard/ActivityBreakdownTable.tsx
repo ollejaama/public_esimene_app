@@ -1,6 +1,7 @@
 import { Activity } from '@/lib/supabase/types'
-import { SPORT_TYPE_MAP, SPORT_COLORS, CUSTOM_SPORT_TAG_LABELS, CustomSportTag } from '@/lib/constants'
+import { SPORT_TYPE_MAP, SPORT_COLORS, CUSTOM_SPORT_TAG_LABELS, CUSTOM_TAG_COLOR_KEY, CustomSportTag } from '@/lib/constants'
 import { formatDuration } from '@/lib/analytics/hrZones'
+import { getActivityTitle, effectiveSportKey } from '@/lib/activity'
 import { Badge } from '@/components/ui/Badge'
 import Link from 'next/link'
 
@@ -16,10 +17,8 @@ function getSportLabel(activity: Activity): string {
 }
 
 function getSportColor(activity: Activity): string {
-  const key = activity.custom_sport_tag
-    ? (activity.custom_sport_tag.includes('ski') ? 'Skiing' : activity.custom_sport_tag.includes('rollerski') ? 'Rollerski' : 'Other')
-    : (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other')
-  return SPORT_COLORS[key] ?? SPORT_COLORS.Other
+  const key = effectiveSportKey(activity)
+  return SPORT_COLORS[CUSTOM_TAG_COLOR_KEY[key] ?? key] ?? SPORT_COLORS.Other
 }
 
 function needsTag(activity: Activity): boolean {
@@ -72,7 +71,7 @@ export function ActivityBreakdownTable({ activities }: ActivityBreakdownTablePro
                   href={`/activities/${activity.id}?from=dashboard`}
                   className="text-gray-900 hover:underline"
                 >
-                  {activity.name}
+                  {getActivityTitle(activity)}
                 </Link>
               </td>
               <td className="py-2 pr-4">

@@ -3,6 +3,7 @@ import { TimeRangeSelector, TimeRange } from '@/components/statistics/TimeRangeS
 import { VolumeBarChart } from '@/components/statistics/VolumeBarChart'
 import { HRZoneDonutChart } from '@/components/statistics/HRZoneDonutChart'
 import { SportBreakdownTable } from '@/components/statistics/SportBreakdownTable'
+import { IntensityBreakdown } from '@/components/statistics/IntensityBreakdown'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { HRZoneSettings } from '@/lib/supabase/types'
@@ -110,6 +111,13 @@ export default async function StatisticsPage({
   const summary = aggregateWeek(rangeActivities ?? [], streams ?? [], zones)
   const zoneRows = zoneSecondsToRows(summary.zoneSeconds, zones)
 
+  const totalSeconds = (rangeActivities ?? []).reduce(
+    (sum, a) => sum + (a.overridden_duration ?? a.moving_time ?? a.elapsed_time), 0
+  )
+  const totalH = Math.floor(totalSeconds / 3600)
+  const totalM = Math.round((totalSeconds % 3600) / 60)
+  const totalHoursLabel = totalM > 0 ? `${totalH}h ${totalM}m` : `${totalH}h`
+
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-6">
@@ -121,10 +129,18 @@ export default async function StatisticsPage({
       <div className="space-y-6">
         {/* Volume chart */}
         <div className="border border-[#e5e5e5] rounded-lg p-5">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-            Training Volume (hours)
-          </h2>
-          <VolumeBarChart data={volumeData} sports={sports} range={range} />
+          <div className="flex items-start gap-6">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                Training Volume (hours)
+              </h2>
+              <VolumeBarChart data={volumeData} sports={sports} range={range} />
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-4xl font-bold text-gray-900 leading-none">{totalHoursLabel}</p>
+              <p className="text-xs text-gray-400 mt-1">total</p>
+            </div>
+          </div>
         </div>
 
         {/* Sport breakdown + HR zones */}
@@ -142,6 +158,14 @@ export default async function StatisticsPage({
             </h2>
             <HRZoneDonutChart zones={zoneRows} />
           </div>
+        </div>
+
+        {/* Intensity breakdown */}
+        <div className="border border-[#e5e5e5] rounded-lg p-5">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+            Intensity Breakdown
+          </h2>
+          <IntensityBreakdown activities={rangeActivities ?? []} />
         </div>
       </div>
     </AppShell>

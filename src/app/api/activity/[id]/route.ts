@@ -3,6 +3,7 @@ import { getSessionFromRequest } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { computeHRZoneSeconds, zoneSecondsToRows } from '@/lib/analytics/hrZones'
 import { HRZoneSettings } from '@/lib/supabase/types'
+import { effectiveDuration } from '@/lib/activity'
 
 const DEFAULT_ZONES: HRZoneSettings = {
   id: '', user_id: '', updated_at: '',
@@ -31,7 +32,7 @@ export async function GET(
   if (!activity) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const zones: HRZoneSettings = zoneData ?? DEFAULT_ZONES
-  const activitySeconds = activity.moving_time ?? activity.elapsed_time
+  const activitySeconds = effectiveDuration(activity)
   const zoneSeconds = hrStream ? computeHRZoneSeconds(hrStream.hr_data, zones, activitySeconds) : { z0: 0, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
   const zoneRows = zoneSecondsToRows(zoneSeconds, zones)
 
@@ -39,6 +40,7 @@ export async function GET(
     activity,
     zoneRows,
     latlng: gpsStream?.latlng_data ?? null,
+    elevation: gpsStream?.elevation_data ?? null,
     hrData: hrStream?.hr_data ?? null,
     laps: laps ?? [],
   })

@@ -87,12 +87,13 @@ async function runStreamsSync(userId: string, force: boolean): Promise<void> {
           .maybeSingle()
 
         if (!existingGPS) {
-          const gpsData = await getGPSStream(token, act.strava_id)
-          if (gpsData) {
+          const gpsResult = await getGPSStream(token, act.strava_id)
+          if (gpsResult) {
             await db.from('activity_gps_streams').upsert({
               activity_id: act.id,
               user_id: userId,
-              latlng_data: gpsData,
+              latlng_data: gpsResult.latlng,
+              elevation_data: gpsResult.elevation ?? null,
             }, { onConflict: 'activity_id' })
             gpsFetched++
           }

@@ -1,6 +1,7 @@
 import { Activity } from '@/lib/supabase/types'
-import { SPORT_TYPE_MAP, SPORT_COLORS } from '@/lib/constants'
+import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { getISOWeek } from './weekSummary'
+import { effectiveDuration, effectiveSportKey } from '@/lib/activity'
 
 export interface WeeklyVolumeBar {
   label: string      // Display label for X axis
@@ -23,12 +24,10 @@ export function groupByWeek(activities: Activity[], sports?: string[]): WeeklyVo
     }
 
     const bar = weekMap.get(key)!
-    const sportKey = activity.custom_sport_tag
-      ? activity.custom_sport_tag
-      : (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other')
+    const sportKey = effectiveSportKey(activity)
 
     if (!sports || sports.includes(sportKey)) {
-      const hours = (activity.moving_time ?? activity.elapsed_time) / 3600
+      const hours = effectiveDuration(activity) / 3600
       bar[sportKey] = ((bar[sportKey] as number) ?? 0) + hours
     }
   }
@@ -46,6 +45,11 @@ const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'S
  * labelFormat 'weekday' → "Mon"…"Sun", 'daynum' → "1"…"31"
  * Zero-fills days with no training.
  */
+// Use local calendar date to avoid UTC-offset mismatches
+function toLocalDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function groupByDay(
   activities: Activity[],
   rangeStart: Date,
@@ -57,7 +61,7 @@ export function groupByDay(
   const bars = new Map<string, WeeklyVolumeBar>()
   const cursor = new Date(rangeStart)
   while (cursor < rangeEnd) {
-    const key = cursor.toISOString().slice(0, 10) // "YYYY-MM-DD"
+    const key = toLocalDateKey(cursor)
     const dow = (cursor.getDay() + 6) % 7 // 0=Mon … 6=Sun
     const label = labelFormat === 'weekday' ? WEEKDAY_LABELS[dow] : String(cursor.getDate())
     bars.set(key, { label, periodKey: key })
@@ -65,16 +69,14 @@ export function groupByDay(
   }
 
   for (const activity of activities) {
-    const key = activity.start_date.slice(0, 10)
+    const key = toLocalDateKey(new Date(activity.start_date))
     if (!bars.has(key)) continue
 
     const bar = bars.get(key)!
-    const sportKey = activity.custom_sport_tag
-      ? activity.custom_sport_tag
-      : (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other')
+    const sportKey = effectiveSportKey(activity)
 
     if (!sports || sports.includes(sportKey)) {
-      const hours = (activity.moving_time ?? activity.elapsed_time) / 3600
+      const hours = effectiveDuration(activity) / 3600
       bar[sportKey] = ((bar[sportKey] as number) ?? 0) + hours
     }
   }
@@ -101,12 +103,10 @@ export function groupByMonth(
     const monthIdx = date.getMonth() // 0-based
 
     const bar = bars[monthIdx]
-    const sportKey = activity.custom_sport_tag
-      ? activity.custom_sport_tag
-      : (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other')
+    const sportKey = effectiveSportKey(activity)
 
     if (!sports || sports.includes(sportKey)) {
-      const hours = (activity.moving_time ?? activity.elapsed_time) / 3600
+      const hours = effectiveDuration(activity) / 3600
       bar[sportKey] = ((bar[sportKey] as number) ?? 0) + hours
     }
   }
@@ -117,12 +117,12 @@ export function groupByMonth(
 export function getAllSportsFromActivities(activities: Activity[]): string[] {
   const set = new Set<string>()
   for (const a of activities) {
-    const key = a.custom_sport_tag ?? (SPORT_TYPE_MAP[a.sport_type] ?? 'Other')
-    set.add(key)
+    set.add(effectiveSportKey(a))
   }
   return Array.from(set)
 }
 
 export function getSportColor(sport: string): string {
-  return SPORT_COLORS[sport] ?? SPORT_COLORS.Other
+  const colorKey = CUSTOM_TAG_COLOR_KEY[sport] ?? sport
+  return SPORT_COLORS[colorKey] ?? SPORT_COLORS.Other
 }

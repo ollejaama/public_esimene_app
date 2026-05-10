@@ -6,16 +6,17 @@ import { getISOWeek, getWeekStart } from '@/lib/analytics/weekSummary'
 interface WeekNavigatorProps {
   week: number
   year: number
+  basePath?: string
 }
 
-export function WeekNavigator({ week, year }: WeekNavigatorProps) {
+export function WeekNavigator({ week, year, basePath = '/dashboard' }: WeekNavigatorProps) {
   const router = useRouter()
 
   function navigate(offset: number) {
     const weekStart = getWeekStart(year, week)
     weekStart.setDate(weekStart.getDate() + offset * 7)
     const { week: newWeek, year: newYear } = getISOWeek(weekStart)
-    router.push(`/dashboard?week=${newWeek}&year=${newYear}`)
+    router.push(`${basePath}?week=${newWeek}&year=${newYear}`)
   }
 
   return (

@@ -20,16 +20,40 @@ const BAR_SIZE: Record<TimeRange, number> = {
   all: 16,
 }
 
+function formatHours(hours: number): string {
+  const h = Math.floor(hours)
+  const m = Math.round((hours - h) * 60)
+  if (h > 0 && m > 0) return `${h}h ${m}min`
+  if (h > 0) return `${h}h`
+  return `${m}min`
+}
+
+function formatTooltipLabel(label: string, periodKey?: string): string {
+  if (!periodKey) return label
+  if (/^\d{4}-\d{2}-\d{2}$/.test(periodKey)) {
+    const d = new Date(periodKey + 'T00:00:00')
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  }
+  if (/^\d{4}-W\d+$/.test(periodKey)) {
+    const [year, w] = periodKey.split('-W')
+    return `Week ${w}, ${year}`
+  }
+  return label
+}
+
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
+  const periodKey = payload[0]?.payload?.periodKey
+  const total = payload.reduce((sum: number, p: any) => sum + Number(p.value), 0)
   return (
-    <div className="bg-white border border-[#e5e5e5] rounded-lg p-3 text-xs shadow-sm">
-      <p className="font-medium text-gray-700 mb-2">{label}</p>
+    <div className="bg-white border border-[#e5e5e5] rounded-lg p-3 text-xs shadow-sm min-w-[140px]">
+      <p className="font-medium text-gray-700">{formatTooltipLabel(label, periodKey)}</p>
+      <p className="text-gray-400 mb-2">Total: {formatHours(total)}</p>
       {payload.map((p: any) => (
         <p key={p.name} className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-sm inline-block" style={{ backgroundColor: p.fill }} />
+          <span className="w-2 h-2 rounded-sm inline-block flex-shrink-0" style={{ backgroundColor: p.fill }} />
           <span className="text-gray-600">{p.name}:</span>
-          <span className="font-medium">{Number(p.value).toFixed(1)}h</span>
+          <span className="font-medium">{formatHours(Number(p.value))}</span>
         </p>
       ))}
     </div>

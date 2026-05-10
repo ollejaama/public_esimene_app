@@ -38,8 +38,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       { onConflict: 'strava_athlete_id' }
     )
 
-    const res = NextResponse.redirect(new URL('/dashboard', req.url))
-    await setSessionCookie(res, { userId, stravaAthleteId: tokens.athlete.id })
+    const res = NextResponse.redirect(new URL('/home', req.url))
+    await setSessionCookie(res, { userId, stravaAthleteId: tokens.athlete.id, role: 'athlete' })
     return res
   } catch (err) {
     console.error('Strava callback error:', err)

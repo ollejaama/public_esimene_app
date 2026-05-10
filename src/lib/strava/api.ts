@@ -99,9 +99,9 @@ export async function getLaps(
 export async function getGPSStream(
   accessToken: string,
   activityId: number
-): Promise<[number, number][] | null> {
+): Promise<{ latlng: [number, number][]; elevation: number[] | null } | null> {
   const res = await fetch(
-    `${STRAVA_API}/activities/${activityId}/streams?keys=latlng&key_by_type=true`,
+    `${STRAVA_API}/activities/${activityId}/streams?keys=latlng,altitude&key_by_type=true`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   )
 
@@ -109,5 +109,10 @@ export async function getGPSStream(
   if (!res.ok) throw new Error(`GPS stream fetch failed: ${res.status}`)
 
   const data = await res.json()
-  return (data.latlng?.data as [number, number][]) ?? null
+  const latlng = data.latlng?.data as [number, number][] | undefined
+  if (!latlng) return null
+  return {
+    latlng,
+    elevation: (data.altitude?.data as number[] | undefined) ?? null,
+  }
 }

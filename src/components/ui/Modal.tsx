@@ -7,9 +7,10 @@ interface ModalProps {
   onClose: () => void
   children: React.ReactNode
   maxWidth?: string
+  align?: 'top' | 'center'
 }
 
-export function Modal({ open, onClose, children, maxWidth = 'max-w-2xl' }: ModalProps) {
+export function Modal({ open, onClose, children, maxWidth = 'max-w-2xl', align = 'top' }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export function Modal({ open, onClose, children, maxWidth = 'max-w-2xl' }: Modal
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8"
+      className={`fixed inset-0 z-50 flex ${align === 'center' ? 'items-center' : 'items-start'} justify-center overflow-y-auto bg-black/40 px-4 py-8`}
       onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
     >
       <div className={`relative bg-white rounded-xl w-full ${maxWidth} shadow-xl`}>

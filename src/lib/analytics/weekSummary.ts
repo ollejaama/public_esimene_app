@@ -1,6 +1,7 @@
 import { Activity, ActivityHRStream, HRZoneSettings } from '@/lib/supabase/types'
-import { SPORT_TYPE_MAP, SPORT_COLORS } from '@/lib/constants'
+import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { computeHRZoneSeconds, aggregateZoneSeconds, ZoneSeconds } from './hrZones'
+import { effectiveDuration, effectiveSportKey } from '@/lib/activity'
 
 export interface WeekSummary {
   totalSeconds: number
@@ -18,8 +19,7 @@ export interface SportTotal {
 }
 
 function getSportKey(activity: Activity): string {
-  if (activity.custom_sport_tag) return activity.custom_sport_tag
-  return SPORT_TYPE_MAP[activity.sport_type] ?? 'Other'
+  return effectiveSportKey(activity)
 }
 
 export function aggregateWeek(
@@ -35,30 +35,33 @@ export function aggregateWeek(
   for (const activity of activities) {
     const key = getSportKey(activity)
     const existing = sportMap.get(key)
-    const color = SPORT_COLORS[key] ?? SPORT_COLORS.Other
+    const color = SPORT_COLORS[CUSTOM_TAG_COLOR_KEY[key] ?? key] ?? SPORT_COLORS.Other
 
     if (existing) {
-      existing.seconds += activity.moving_time ?? activity.elapsed_time
+      existing.seconds += effectiveDuration(activity)
       existing.sessions += 1
     } else {
       sportMap.set(key, {
         key,
         label: key,
         color,
-        seconds: activity.moving_time ?? activity.elapsed_time,
+        seconds: effectiveDuration(activity),
         sessions: 1,
       })
     }
 
     const hrData = streamMap.get(activity.id)
-    const activitySeconds = activity.moving_time ?? activity.elapsed_time
+    const activitySeconds = effectiveDuration(activity)
     if (hrData) {
       allZoneSeconds.push(computeHRZoneSeconds(hrData, zones, activitySeconds))
+    } else {
+      // Activities without HR data count as I0 (untracked) so zone totals match total time
+      allZoneSeconds.push({ z0: activitySeconds, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 })
     }
   }
 
   return {
-    totalSeconds: activities.reduce((sum, a) => sum + (a.moving_time ?? a.elapsed_time), 0),
+    totalSeconds: activities.reduce((sum, a) => sum + effectiveDuration(a), 0),
     totalSessions: activities.length,
     bySport: Array.from(sportMap.values()),
     zoneSeconds: aggregateZoneSeconds(allZoneSeconds),

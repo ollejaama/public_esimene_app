@@ -13,7 +13,7 @@ const DEFAULT_ZONES: HRZoneSettings = {
   zone1_name: 'I1', zone2_name: 'I2', zone3_name: 'I3', zone4_name: 'I4', zone5_name: 'I5',
 }
 
-export default async function ActivityDetailPage({ params, searchParams }: { params: { id: string }, searchParams: { from?: string } }) {
+export default async function ActivityDetailPage({ params, searchParams }: { params: { id: string }, searchParams: { from?: string, expanded?: string } }) {
   const session = await getSession()
   if (!session) redirect('/')
 
@@ -41,10 +41,16 @@ export default async function ActivityDetailPage({ params, searchParams }: { par
     <AppShell>
       <div className="mb-6">
         <Link
-          href={searchParams.from === 'dashboard' ? '/dashboard' : '/activities'}
+          href={
+            searchParams.from === 'dashboard' ? '/dashboard' :
+            searchParams.from === 'statistics' ? '/statistics' :
+            '/activities'
+          }
           className="text-xs text-gray-400 hover:text-gray-600"
         >
-          {searchParams.from === 'dashboard' ? '← Back to Dashboard' : '← Back to Activities'}
+          {searchParams.from === 'dashboard' ? '← Back to Dashboard' :
+           searchParams.from === 'statistics' ? '← Back to Statistics' :
+           '← Back to Calendar'}
         </Link>
       </div>
 
@@ -54,6 +60,8 @@ export default async function ActivityDetailPage({ params, searchParams }: { par
         latlng={gpsStream?.latlng_data ?? []}
         hrData={hrStream?.hr_data ?? null}
         laps={laps ?? []}
+        elevationData={gpsStream?.elevation_data ?? null}
+        defaultExpanded={searchParams.expanded === 'true'}
       />
     </AppShell>
   )

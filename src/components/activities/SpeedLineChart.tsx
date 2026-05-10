@@ -8,6 +8,16 @@ interface SpeedLineChartProps {
   highlightIndex?: number
 }
 
+function rollingAverage(data: number[], window: number): number[] {
+  const half = Math.floor(window / 2)
+  return data.map((_, i) => {
+    const lo = Math.max(0, i - half)
+    const hi = Math.min(data.length - 1, i + half)
+    const slice = data.slice(lo, hi + 1)
+    return slice.reduce((a, b) => a + b, 0) / slice.length
+  })
+}
+
 function downsample(data: number[], maxPoints: number): { t: number; v: number }[] {
   if (data.length <= maxPoints) {
     return data.map((v, i) => ({ t: i, v }))
@@ -35,7 +45,8 @@ function formatPaceValue(minPerKm: number): string {
 }
 
 export function SpeedLineChart({ speedData, isRunning, highlightIndex }: SpeedLineChartProps) {
-  const rawPoints = downsample(speedData, 600)
+  const smoothed = rollingAverage(speedData, 25)
+  const rawPoints = downsample(smoothed, 600)
 
   // For running, convert km/h to min/km (pace). Clamp absurd values (e.g. GPS jumps).
   const points = isRunning

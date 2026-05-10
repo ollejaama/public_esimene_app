@@ -14,7 +14,11 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 
   try {
     const secret = new TextEncoder().encode(process.env.SESSION_SECRET!)
-    await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, secret)
+    const role = (payload as Record<string, unknown>).role ?? 'athlete'
+    if (role === 'coach' && req.nextUrl.pathname.startsWith('/settings')) {
+      return NextResponse.redirect(new URL('/home', req.url))
+    }
     return NextResponse.next()
   } catch {
     return NextResponse.redirect(new URL('/', req.url))
@@ -22,5 +26,13 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/statistics/:path*', '/activities/:path*', '/settings/:path*'],
+  matcher: [
+    '/home/:path*',
+    '/dashboard/:path*',
+    '/statistics/:path*',
+    '/activities/:path*',
+    '/settings/:path*',
+    '/plan/:path*',
+    '/compare/:path*',
+  ],
 }

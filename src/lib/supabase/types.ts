@@ -29,6 +29,9 @@ export interface Activity {
   has_hr_data: boolean
   has_gps_data: boolean
   notes: string | null
+  overridden_duration: number | null
+  overridden_sport_type: string | null
+  intensity_type: 'regular' | 'interval' | 'speed' | 'competition' | null
   created_at: string
 }
 
@@ -44,6 +47,7 @@ export interface ActivityGPSStream {
   activity_id: string
   user_id: string
   latlng_data: [number, number][]
+  elevation_data: number[] | null
 }
 
 export interface HRZoneSettings {
@@ -74,7 +78,21 @@ export interface ActivityLap {
   max_hr: number | null
 }
 
+export interface PlannedActivity {
+  id: string
+  user_id: string
+  date: string // 'YYYY-MM-DD'
+  sport_type: string
+  duration_minutes: number
+  description: string | null
+  time_of_day: 'morning' | 'evening'
+  intensity_type: 'regular' | 'interval' | 'speed'
+  created_at: string
+  updated_at: string
+}
+
 export interface SessionPayload {
   userId: string
   stravaAthleteId: number
+  role: 'athlete' | 'coach'
 }

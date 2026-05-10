@@ -4,7 +4,7 @@ import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export const metadata = { title: 'Activities — Training Analytics' }
+export const metadata = { title: 'Calendar — Training Analytics' }
 
 export default async function ActivitiesPage() {
   const session = await getSession()
@@ -28,7 +28,7 @@ export default async function ActivitiesPage() {
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Activities</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Calendar</h1>
       </div>
       <ActivityCalendar
         activities={activities ?? []}

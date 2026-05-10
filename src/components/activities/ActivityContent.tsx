@@ -11,6 +11,7 @@ import { LapTable } from './LapTable'
 import { LeafletMap } from './LeafletMap'
 import { HRLineChart } from './HRLineChart'
 import { SpeedLineChart } from './SpeedLineChart'
+import { ElevationChart } from './ElevationChart'
 
 interface ActivityContentProps {
   activity: Activity
@@ -22,6 +23,8 @@ interface ActivityContentProps {
   activitySeconds: number
   /** When true, show the HR line chart */
   showHRChart?: boolean
+  /** Elevation data from GPS stream (one meter value per second) */
+  elevationData?: number[] | null
 }
 
 export function ActivityContent({
@@ -32,6 +35,7 @@ export function ActivityContent({
   laps,
   activitySeconds,
   showHRChart = false,
+  elevationData,
 }: ActivityContentProps) {
   const hasHR = zoneRows.some((z) => z.seconds > 0)
   const hrCovered = zoneRows.reduce((sum, z) => sum + z.seconds, 0)
@@ -55,6 +59,7 @@ export function ActivityContent({
 
   const showSlider = showHRChart && hasGPS && sliderMax > 0 && isFinite(sliderMax)
   const showSpeedChart = showHRChart && hasGPS && speedData !== null
+  const showElevationChart = showHRChart && hasGPS && elevationData != null && elevationData.length > 0
 
   return (
     <div className="space-y-6">
@@ -112,6 +117,16 @@ export function ActivityContent({
           <SpeedLineChart
             speedData={speedData}
             isRunning={isRunning}
+            highlightIndex={showSlider ? sliderIndex : undefined}
+          />
+        </div>
+      )}
+
+      {showElevationChart && elevationData && (
+        <div className="border border-[#e5e5e5] rounded-lg p-5">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Elevation</h2>
+          <ElevationChart
+            elevationData={elevationData}
             highlightIndex={showSlider ? sliderIndex : undefined}
           />
         </div>

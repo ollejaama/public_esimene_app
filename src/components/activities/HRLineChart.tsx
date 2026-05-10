@@ -1,6 +1,6 @@
 'use client'
 
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 
 interface HRLineChartProps {
   hrData: number[]
@@ -33,7 +33,16 @@ export function HRLineChart({ hrData, highlightIndex }: HRLineChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={200}>
-      <LineChart data={points} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+      <AreaChart data={points} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+        <defs>
+          <linearGradient id="hrGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#ef4444" stopOpacity={1} />
+            <stop offset="25%"  stopColor="#fb923c" stopOpacity={1} />
+            <stop offset="50%"  stopColor="#facc15" stopOpacity={1} />
+            <stop offset="75%"  stopColor="#86efac" stopOpacity={1} />
+            <stop offset="100%" stopColor="#94a3b8" stopOpacity={1} />
+          </linearGradient>
+        </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
         <XAxis
           dataKey="t"
@@ -56,18 +65,20 @@ export function HRLineChart({ hrData, highlightIndex }: HRLineChartProps) {
           labelFormatter={(t) => formatTime(Number(t))}
           contentStyle={{ fontSize: 11, borderRadius: 6, border: '1px solid #e5e5e5' }}
         />
-        <Line
+        <Area
           type="monotone"
           dataKey="bpm"
           stroke="#ef4444"
           strokeWidth={1.5}
+          fill="url(#hrGradient)"
           dot={false}
           activeDot={{ r: 3 }}
+          isAnimationActive={false}
         />
         {highlightIndex !== undefined && (
           <ReferenceLine x={highlightIndex} stroke="#9ca3af" strokeWidth={1} strokeDasharray="3 3" />
         )}
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   )
 }

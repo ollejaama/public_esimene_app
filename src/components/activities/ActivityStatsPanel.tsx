@@ -1,6 +1,9 @@
 import { Activity } from '@/lib/supabase/types'
-import { SPORT_TYPE_MAP, CUSTOM_SPORT_TAG_LABELS, CustomSportTag } from '@/lib/constants'
-import { formatDuration } from '@/lib/analytics/hrZones'
+import { SPORT_TYPE_MAP } from '@/lib/constants'
+import { effectiveSportKey } from '@/lib/activity'
+import { DurationEditor } from './DurationEditor'
+import { SportTypeEditor } from './SportTypeEditor'
+import { IntensityEditor } from './IntensityEditor'
 
 interface ActivityStatsPanelProps {
   activity: Activity
@@ -30,20 +33,14 @@ function formatDateFull(iso: string): string {
   }).format(new Date(iso))
 }
 
-function getSportLabel(activity: Activity): string {
-  if (activity.custom_sport_tag) {
-    return CUSTOM_SPORT_TAG_LABELS[activity.custom_sport_tag as CustomSportTag] ?? activity.custom_sport_tag
-  }
-  return SPORT_TYPE_MAP[activity.sport_type] ?? activity.sport_type
-}
-
 interface Stat { label: string; value: string }
 
 export function ActivityStatsPanel({ activity }: ActivityStatsPanelProps) {
+  const sportKey = effectiveSportKey(activity)
+  const isStrength = sportKey === 'Strength' || sportKey === 'strength_basic'
+
   const stats: Stat[] = [
-    { label: 'Sport', value: getSportLabel(activity) },
     { label: 'Date', value: formatDateFull(activity.start_date) },
-    { label: 'Duration', value: formatDuration(activity.moving_time ?? activity.elapsed_time) },
     { label: 'Distance', value: formatDistance(activity.distance) },
     { label: 'Elevation gain', value: activity.total_elevation_gain ? `${Math.round(activity.total_elevation_gain)} m` : '—' },
     { label: 'Average HR', value: activity.average_hr ? `${Math.round(activity.average_hr)} bpm` : '—' },
@@ -53,6 +50,29 @@ export function ActivityStatsPanel({ activity }: ActivityStatsPanelProps) {
 
   return (
     <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+      {/* Duration — interactive editor */}
+      <DurationEditor
+        activityId={activity.id}
+        initialOverride={activity.overridden_duration ?? null}
+        originalDuration={activity.moving_time ?? activity.elapsed_time}
+      />
+
+      {/* Sport — interactive editor */}
+      <SportTypeEditor
+        activityId={activity.id}
+        initialOverride={activity.overridden_sport_type ?? null}
+        originalSportType={SPORT_TYPE_MAP[activity.sport_type] ?? activity.sport_type}
+        customTag={activity.custom_sport_tag}
+      />
+
+      {/* Intensity — interactive editor (hidden for strength activities) */}
+      {!isStrength && (
+        <IntensityEditor
+          activityId={activity.id}
+          initialValue={activity.intensity_type}
+        />
+      )}
+
       {stats.map(({ label, value }) => (
         <div key={label}>
           <dt className="text-xs text-gray-400">{label}</dt>
