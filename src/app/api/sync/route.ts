@@ -62,6 +62,12 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
       }
     }
 
+    const { data: deletedRows } = await db
+      .from('deleted_activities')
+      .select('strava_id')
+      .eq('user_id', userId)
+    const deletedIds = new Set((deletedRows ?? []).map((r) => r.strava_id))
+
     let totalSynced = 0
     let hrFetched = 0
     let gpsFetched = 0
@@ -77,10 +83,11 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
 
       if (activities.length === 0) break
 
-      // Full sync: drop anything older than the 3-year cutoff
-      const batch = fullSync
+      // Full sync: drop anything older than the 3-year cutoff; always filter deleted
+      const batch = (fullSync
         ? activities.filter(a => Math.floor(new Date(a.start_date).getTime() / 1000) > cutoffUnix)
         : activities
+      ).filter(a => !deletedIds.has(a.id))
 
       setSyncProgress(userId, {
         message: `Syncing batch (${batch.length} activities)…`,

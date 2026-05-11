@@ -46,3 +46,33 @@ export async function GET(
     laps: laps ?? [],
   })
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
+  const session = await getSessionFromRequest(req)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const db = createServiceClient()
+
+  const { data: activity } = await db
+    .from('activities')
+    .select('strava_id')
+    .eq('id', params.id)
+    .eq('user_id', session.userId)
+    .single()
+
+  if (!activity) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  await db.from('activities').delete().eq('id', params.id).eq('user_id', session.userId)
+
+  if (activity.strava_id != null) {
+    await db.from('deleted_activities').upsert(
+      { user_id: session.userId, strava_id: activity.strava_id },
+      { onConflict: 'user_id,strava_id' }
+    )
+  }
+
+  return NextResponse.json({ ok: true })
+}

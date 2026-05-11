@@ -99,20 +99,22 @@ export function ActivityContent({
         </div>
       )}
 
-      <div className="border border-[#e5e5e5] rounded-lg p-5">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Route</h2>
-        <LeafletMap latlng={latlng} highlightIndex={showSlider ? sliderIndex : undefined} />
-        {showSlider && (
-          <input
-            type="range"
-            min={0}
-            max={sliderMax}
-            value={sliderIndex}
-            onChange={(e) => setSliderIndex(Number(e.target.value))}
-            className="w-full mt-3 accent-orange-500"
-          />
-        )}
-      </div>
+      {hasGPS && (
+        <div className="border border-[#e5e5e5] rounded-lg p-5">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Route</h2>
+          <LeafletMap latlng={latlng} highlightIndex={showSlider ? sliderIndex : undefined} />
+          {showSlider && (
+            <input
+              type="range"
+              min={0}
+              max={sliderMax}
+              value={sliderIndex}
+              onChange={(e) => setSliderIndex(Number(e.target.value))}
+              className="w-full mt-3 accent-orange-500"
+            />
+          )}
+        </div>
+      )}
 
       {showHRChart && hrData && hrData.length > 0 && (
         <div className="border border-[#e5e5e5] rounded-lg p-5">

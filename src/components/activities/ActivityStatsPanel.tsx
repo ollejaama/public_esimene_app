@@ -1,6 +1,10 @@
 import { Activity } from '@/lib/supabase/types'
 import { SPORT_TYPE_MAP } from '@/lib/constants'
 import { effectiveSportKey } from '@/lib/activity'
+
+function isRunningActivity(activity: Activity): boolean {
+  return (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other') === 'Running'
+}
 import { DurationEditor } from './DurationEditor'
 import { SportTypeEditor } from './SportTypeEditor'
 import { IntensityEditor } from './IntensityEditor'
@@ -40,14 +44,15 @@ interface Stat { label: string; value: string }
 export function ActivityStatsPanel({ activity }: ActivityStatsPanelProps) {
   const sportKey = effectiveSportKey(activity)
   const isStrength = sportKey === 'Strength' || sportKey === 'strength_basic'
+  const isRunning = isRunningActivity(activity)
 
   const stats: Stat[] = [
     { label: 'Date', value: formatDateFull(activity.start_date) },
-    { label: 'Distance', value: formatDistance(activity.distance) },
-    { label: 'Elevation gain', value: activity.total_elevation_gain ? `${Math.round(activity.total_elevation_gain)} m` : '—' },
-    { label: 'Average HR', value: activity.average_hr ? `${Math.round(activity.average_hr)} bpm` : '—' },
-    { label: 'Max HR', value: activity.max_hr ? `${Math.round(activity.max_hr)} bpm` : '—' },
-    { label: 'Speed', value: formatSpeed(activity) },
+    ...(activity.distance > 0 ? [{ label: 'Distance', value: formatDistance(activity.distance) }] : []),
+    ...(activity.total_elevation_gain ? [{ label: 'Elevation gain', value: `${Math.round(activity.total_elevation_gain)} m` }] : []),
+    ...(activity.average_hr ? [{ label: 'Average HR', value: `${Math.round(activity.average_hr)} bpm` }] : []),
+    ...(activity.max_hr ? [{ label: 'Max HR', value: `${Math.round(activity.max_hr)} bpm` }] : []),
+    ...((activity.average_speed ?? 0) > 0 ? [{ label: isRunning ? 'Pace' : 'Speed', value: formatSpeed(activity) }] : []),
   ]
 
   return (

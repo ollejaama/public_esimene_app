@@ -80,12 +80,14 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
     }
   }
 
-  // Group activities by date key
+  // Group activities by date key, sorted ascending by start_date
   const activityMap = new Map<string, Activity[]>()
   for (const activity of activities) {
     const key = toDateKey(new Date(activity.start_date))
     const existing = activityMap.get(key) ?? []
-    activityMap.set(key, [...existing, activity])
+    activityMap.set(key, [...existing, activity].sort(
+      (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+    ))
   }
 
   const days = getDaysInMonth(month.getFullYear(), month.getMonth())
