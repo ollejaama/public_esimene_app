@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { Modal } from '@/components/ui/Modal'
 import { Spinner } from '@/components/ui/Spinner'
 import { ActivityContent } from './ActivityContent'
+import { SportTagSelector } from './SportTagSelector'
+import { StrengthSubtypeSelector } from './StrengthSubtypeSelector'
 import { Activity, ActivityLap } from '@/lib/supabase/types'
 import { ZoneRow } from '@/lib/analytics/hrZones'
 import { getActivityTitle } from '@/lib/activity'
@@ -62,6 +64,13 @@ export function ActivityModal({ activityId, onClose, isCoach = false }: Activity
     })
     setDetail((prev) => prev ? { ...prev, activity: { ...prev.activity, hidden: newHidden } } : prev)
     setSavingHidden(false)
+    router.refresh()
+  }
+
+  function handleTagChanged(tag: string | null) {
+    setDetail((prev) =>
+      prev ? { ...prev, activity: { ...prev.activity, custom_sport_tag: tag } } : prev
+    )
     router.refresh()
   }
 
@@ -126,6 +135,18 @@ export function ActivityModal({ activityId, onClose, isCoach = false }: Activity
                 </Link>
               </div>
             </div>
+            <SportTagSelector
+              activityId={detail.activity.id}
+              currentTag={detail.activity.custom_sport_tag}
+              sportType={detail.activity.sport_type}
+              onChanged={handleTagChanged}
+            />
+            <StrengthSubtypeSelector
+              activityId={detail.activity.id}
+              currentTag={detail.activity.custom_sport_tag}
+              sportType={detail.activity.sport_type}
+              onChanged={handleTagChanged}
+            />
             <ActivityContent
               activity={detail.activity}
               zoneRows={detail.zoneRows}

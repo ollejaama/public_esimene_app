@@ -8,9 +8,10 @@ interface SportTagSelectorProps {
   activityId: string
   currentTag: string | null
   sportType: string
+  onChanged?: (tag: string | null) => void
 }
 
-export function SportTagSelector({ activityId, currentTag, sportType }: SportTagSelectorProps) {
+export function SportTagSelector({ activityId, currentTag, sportType, onChanged }: SportTagSelectorProps) {
   const [tag, setTag] = useState<string | null>(currentTag)
   const [saving, setSaving] = useState(false)
   const router = useRouter()
@@ -27,7 +28,11 @@ export function SportTagSelector({ activityId, currentTag, sportType }: SportTag
     })
     setTag(newTag)
     setSaving(false)
-    router.refresh()
+    if (onChanged) {
+      onChanged(newTag)
+    } else {
+      router.refresh()
+    }
   }
 
   return (
@@ -40,7 +45,7 @@ export function SportTagSelector({ activityId, currentTag, sportType }: SportTag
         className="text-xs border border-gray-200 rounded px-2 py-1 text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400 disabled:opacity-50"
       >
         <option value="">Skiing (untagged)</option>
-        {CUSTOM_SPORT_TAGS.map((t) => (
+        {CUSTOM_SPORT_TAGS.filter((t) => t !== 'strength_basic').map((t) => (
           <option key={t} value={t}>
             {CUSTOM_SPORT_TAG_LABELS[t as CustomSportTag]}
           </option>

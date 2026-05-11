@@ -42,13 +42,14 @@ export interface ActivitiesPage {
 
 export async function getActivities(
   accessToken: string,
-  options: { after?: number; page?: number; perPage?: number } = {}
+  options: { after?: number; before?: number; page?: number; perPage?: number } = {}
 ): Promise<ActivitiesPage> {
   const params = new URLSearchParams({
     per_page: String(options.perPage ?? 50),
     page: String(options.page ?? 1),
   })
   if (options.after) params.set('after', String(options.after))
+  if (options.before) params.set('before', String(options.before))
 
   const res = await fetch(`${STRAVA_API}/athlete/activities?${params}`, {
     headers: { Authorization: `Bearer ${accessToken}` },

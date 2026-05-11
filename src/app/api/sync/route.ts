@@ -41,8 +41,16 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
   setSyncProgress(userId, { status: 'running', message: 'Starting sync…' })
 
   try {
-    // Get last sync time for incremental
-    let after: number | undefined
+    // Full sync: cursor walking newest → oldest, stopping at 3-year cutoff.
+    // Incremental sync: page-based from last_synced_at forward.
+    const threeYearsAgo = new Date()
+    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3)
+    const cutoffUnix = Math.floor(threeYearsAgo.getTime() / 1000)
+
+    let after: number | undefined   // used by incremental only
+    let before: number | undefined  // used by full sync as cursor (undefined = from now)
+    let page = 1                    // used by incremental only
+
     if (!fullSync) {
       const { data: profile } = await db
         .from('profiles')
@@ -54,7 +62,6 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
       }
     }
 
-    let page = 1
     let totalSynced = 0
     let hrFetched = 0
     let gpsFetched = 0
@@ -64,15 +71,19 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
     while (true) {
       const accessToken = await getValidAccessToken(userId)
       const { activities, rateLimitUsage, rateLimitLimit } = await getActivities(accessToken, {
-        after,
-        page,
+        ...(fullSync ? { before } : { after, page }),
         perPage: BATCH_SIZE,
       })
 
       if (activities.length === 0) break
 
+      // Full sync: drop anything older than the 3-year cutoff
+      const batch = fullSync
+        ? activities.filter(a => Math.floor(new Date(a.start_date).getTime() / 1000) > cutoffUnix)
+        : activities
+
       setSyncProgress(userId, {
-        message: `Syncing page ${page} (${activities.length} activities)…`,
+        message: `Syncing batch (${batch.length} activities)…`,
         activitiesSynced: totalSynced,
       })
 
@@ -88,7 +99,7 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
       }
 
       // Upsert activities
-      const activityRows = activities.map((a) => ({
+      const activityRows = batch.map((a) => ({
         user_id: userId,
         strava_id: a.id,
         name: a.name,
@@ -107,11 +118,12 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
         has_gps_data: !!(a.map?.summary_polyline),
       }))
 
-      await db.from('activities').upsert(activityRows, { onConflict: 'user_id,strava_id' })
-      totalSynced += activities.length
+      const { error: upsertError } = await db.from('activities').upsert(activityRows, { onConflict: 'user_id,strava_id' })
+      if (upsertError) throw new Error(`Activity upsert failed: ${upsertError.message}`)
+      totalSynced += batch.length
 
-      // Fetch streams for each activity
-      for (const activity of activities) {
+      // Fetch streams for each activity in the batch
+      for (const activity of batch) {
         // Re-check access token freshness for each stream batch
         const token = await getValidAccessToken(userId)
 
@@ -205,9 +217,17 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
         })
       }
 
-      if (activities.length < BATCH_SIZE) break
+      if (fullSync) {
+        // Stop if we filtered any activities (means we hit the 3-year cutoff)
+        if (batch.length < activities.length) break
+        // Advance cursor to just before the oldest activity in this batch
+        const oldest = activities[activities.length - 1]
+        before = Math.floor(new Date(oldest.start_date).getTime() / 1000)
+      } else {
+        if (activities.length < BATCH_SIZE) break
+        page++
+      }
 
-      page++
       // 1s delay between batches
       await sleep(1000)
     }
