@@ -13,8 +13,8 @@ export default async function ActivitiesPage() {
   const db = createServiceClient()
   const now = new Date()
 
-  // Fetch current month + adjacent months for smooth navigation
-  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  // Fetch 3 years back + 2 months forward for full calendar coverage
+  const start = new Date(now.getFullYear() - 3, now.getMonth(), 1)
   const end = new Date(now.getFullYear(), now.getMonth() + 2, 1)
 
   const isCoach = session.role === 'coach'
@@ -25,7 +25,8 @@ export default async function ActivitiesPage() {
     .eq('user_id', session.userId)
     .gte('start_date', start.toISOString())
     .lt('start_date', end.toISOString())
-    .order('start_date', { ascending: true })
+    .order('start_date', { ascending: false })
+    .limit(5000)
 
   // Coach never sees hidden activities
   if (isCoach) query = query.eq('hidden', false) as typeof query

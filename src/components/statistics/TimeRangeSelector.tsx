@@ -3,13 +3,12 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 
-export type TimeRange = 'week' | 'month' | 'year' | 'all'
+export type TimeRange = 'week' | 'month' | 'season'
 
 const RANGES: { value: TimeRange; label: string }[] = [
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' },
-  { value: 'year', label: 'Year' },
-  { value: 'all', label: 'All time' },
+  { value: 'season', label: 'Season' },
 ]
 
 interface TimeRangeSelectorProps {
@@ -27,14 +26,6 @@ export function TimeRangeSelector({ current, offset, periodLabel }: TimeRangeSel
 
   function navigate(dir: number) {
     router.push(`/statistics?range=${current}&offset=${offset + dir}`)
-  }
-
-  if (current === 'all') {
-    return (
-      <div className="flex items-center gap-4 mb-6">
-        <RangeTabs current={current} onSelect={setRange} />
-      </div>
-    )
   }
 
   return (

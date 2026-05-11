@@ -16,8 +16,7 @@ interface VolumeBarChartProps {
 const BAR_SIZE: Record<TimeRange, number> = {
   week: 24,
   month: 8,
-  year: 20,
-  all: 16,
+  season: 20,
 }
 
 function formatHours(hours: number): string {
