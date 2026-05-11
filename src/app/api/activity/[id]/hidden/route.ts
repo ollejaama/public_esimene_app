@@ -10,20 +10,15 @@ export async function PATCH(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { intensity_type } = body
-
-  if (!['regular', 'interval', 'speed', 'competition'].includes(intensity_type)) {
-    return NextResponse.json({ error: 'Invalid intensity_type' }, { status: 400 })
-  }
+  const hidden = Boolean(body.hidden)
 
   const db = createServiceClient()
   const { error } = await db
     .from('activities')
-    .update({ intensity_type })
+    .update({ hidden })
     .eq('id', params.id)
     .eq('user_id', session.userId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
   return NextResponse.json({ ok: true })
 }

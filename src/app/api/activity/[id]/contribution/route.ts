@@ -10,20 +10,19 @@ export async function PATCH(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { intensity_type } = body
+  const contribution_hours = body.contribution_hours == null ? null : Number(body.contribution_hours)
 
-  if (!['regular', 'interval', 'speed', 'competition'].includes(intensity_type)) {
-    return NextResponse.json({ error: 'Invalid intensity_type' }, { status: 400 })
+  if (contribution_hours !== null && (isNaN(contribution_hours) || contribution_hours <= 0)) {
+    return NextResponse.json({ error: 'contribution_hours must be a positive number or null' }, { status: 400 })
   }
 
   const db = createServiceClient()
   const { error } = await db
     .from('activities')
-    .update({ intensity_type })
+    .update({ contribution_hours })
     .eq('id', params.id)
     .eq('user_id', session.userId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
   return NextResponse.json({ ok: true })
 }

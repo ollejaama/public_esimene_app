@@ -19,9 +19,9 @@ export default async function HomePage() {
 
   const sections = [
     {
-      href: '/dashboard',
-      title: 'Analyse',
-      description: 'Review completed training — weekly summaries, HR zones, and activity history.',
+      href: '/activities',
+      title: 'Calendar',
+      description: 'Browse completed training on a monthly calendar. Click any day to view details.',
     },
     {
       href: '/plan',

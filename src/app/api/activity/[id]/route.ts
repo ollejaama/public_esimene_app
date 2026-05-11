@@ -9,6 +9,7 @@ const DEFAULT_ZONES: HRZoneSettings = {
   id: '', user_id: '', updated_at: '',
   zone1_max: 130, zone2_max: 148, zone3_max: 162, zone4_max: 174,
   zone1_name: 'I1', zone2_name: 'I2', zone3_name: 'I3', zone4_name: 'I4', zone5_name: 'I5',
+  rest_day_threshold_minutes: 0,
 }
 
 export async function GET(

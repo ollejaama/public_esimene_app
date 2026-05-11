@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { PlannedActivity, Activity } from '@/lib/supabase/types'
-import { WeekNavigator } from '@/components/dashboard/WeekNavigator'
+import { WeekNavigator } from '@/components/ui/WeekNavigator'
 import { ActivityModal } from '@/components/activities/ActivityModal'
+import { PlannedActivityPreviewModal } from '@/components/activities/PlannedActivityPreviewModal'
 import { SPORT_COLORS, PLANNED_SPORT_COLOR_KEY, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { getActivityTitle, effectiveSportKey } from '@/lib/activity'
 
@@ -51,6 +52,7 @@ export function CompareWeekView({
   year,
 }: CompareWeekViewProps) {
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
+  const [selectedPlanned, setSelectedPlanned] = useState<PlannedActivity | null>(null)
 
   const plannedMap = new Map<string, PlannedActivity[]>()
   for (const a of plannedActivities) {
@@ -71,6 +73,12 @@ export function CompareWeekView({
     return d
   })
 
+  // Weekly volume totals
+  const plannedTotalMinutes = plannedActivities.reduce((s, a) => s + a.duration_minutes, 0)
+  const actualTotalMinutes = Math.round(
+    actualActivities.reduce((s, a) => s + (a.moving_time ?? a.elapsed_time), 0) / 60
+  )
+
   return (
     <>
       {/* Header */}
@@ -82,8 +90,12 @@ export function CompareWeekView({
       {/* Column headers */}
       <div className="grid grid-cols-[100px_1fr_1fr] gap-4 mb-2 px-1">
         <div />
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Planned</p>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Actual</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+          Planned{plannedTotalMinutes > 0 ? ` — ${formatDurationMinutes(plannedTotalMinutes)}` : ''}
+        </p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+          Actual{actualTotalMinutes > 0 ? ` — ${formatDurationMinutes(actualTotalMinutes)}` : ''}
+        </p>
       </div>
 
       {/* Day rows */}
@@ -118,20 +130,25 @@ export function CompareWeekView({
                   planned.map((a) => {
                     const color = getPlannedColor(a.sport_type)
                     return (
-                      <div
+                      <button
                         key={a.id}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded text-xs"
-                        style={{ backgroundColor: `${color}18`, color }}
+                        onClick={() => setSelectedPlanned(a)}
+                        className="w-full text-left"
                       >
                         <span
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: color }}
-                        />
-                        <span className="truncate font-medium">{a.sport_type}</span>
-                        <span className="ml-auto shrink-0 opacity-70">
-                          {formatDurationMinutes(a.duration_minutes)}
+                          className="flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: `${color}18`, color }}
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="truncate font-medium">{a.sport_type}</span>
+                          <span className="ml-auto shrink-0 opacity-70">
+                            {formatDurationMinutes(a.duration_minutes)}
+                          </span>
                         </span>
-                      </div>
+                      </button>
                     )
                   })
                 )}
@@ -177,6 +194,13 @@ export function CompareWeekView({
         activityId={selectedActivityId}
         onClose={() => setSelectedActivityId(null)}
       />
+
+      {selectedPlanned && (
+        <PlannedActivityPreviewModal
+          activity={selectedPlanned}
+          onClose={() => setSelectedPlanned(null)}
+        />
+      )}
     </>
   )
 }

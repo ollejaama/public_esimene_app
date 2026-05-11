@@ -38,7 +38,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       { onConflict: 'strava_athlete_id' }
     )
 
-    const res = NextResponse.redirect(new URL('/home', req.url))
+    const res = NextResponse.redirect(new URL('/activities', req.url))
     await setSessionCookie(res, { userId, stravaAthleteId: tokens.athlete.id, role: 'athlete' })
     return res
   } catch (err) {

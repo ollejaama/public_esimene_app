@@ -12,7 +12,7 @@ export interface Profile {
 export interface Activity {
   id: string
   user_id: string
-  strava_id: number
+  strava_id: number | null
   name: string
   sport_type: string
   custom_sport_tag: string | null
@@ -32,6 +32,9 @@ export interface Activity {
   overridden_duration: number | null
   overridden_sport_type: string | null
   intensity_type: 'regular' | 'interval' | 'speed' | 'competition' | null
+  hidden: boolean
+  contribution_hours: number | null
+  is_manual: boolean
   created_at: string
 }
 
@@ -62,6 +65,7 @@ export interface HRZoneSettings {
   zone3_name: string
   zone4_name: string
   zone5_name: string
+  rest_day_threshold_minutes: number
   updated_at: string
 }
 
@@ -86,7 +90,7 @@ export interface PlannedActivity {
   duration_minutes: number
   description: string | null
   time_of_day: 'morning' | 'evening'
-  intensity_type: 'regular' | 'interval' | 'speed'
+  intensity_type: 'regular' | 'interval' | 'speed' | 'competition'
   created_at: string
   updated_at: string
 }

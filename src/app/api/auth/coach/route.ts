@@ -10,7 +10,7 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL('/?error=no_athlete', _req.url))
   }
 
-  const res = NextResponse.redirect(new URL('/home', _req.url))
+  const res = NextResponse.redirect(new URL('/activities', _req.url))
   await setSessionCookie(res, {
     userId: profile.user_id,
     stravaAthleteId: 0,

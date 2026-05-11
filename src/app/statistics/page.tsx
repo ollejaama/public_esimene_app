@@ -4,12 +4,14 @@ import { VolumeBarChart } from '@/components/statistics/VolumeBarChart'
 import { HRZoneDonutChart } from '@/components/statistics/HRZoneDonutChart'
 import { SportBreakdownTable } from '@/components/statistics/SportBreakdownTable'
 import { IntensityBreakdown } from '@/components/statistics/IntensityBreakdown'
+import { RestDaysWidget } from '@/components/statistics/RestDaysWidget'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { HRZoneSettings } from '@/lib/supabase/types'
 import { groupByWeek, groupByDay, groupByMonth, getAllSportsFromActivities } from '@/lib/analytics/volumeByWeek'
 import { aggregateWeek } from '@/lib/analytics/weekSummary'
 import { zoneSecondsToRows } from '@/lib/analytics/hrZones'
+import { effectiveContributionSeconds } from '@/lib/activity'
 import { redirect } from 'next/navigation'
 
 export const metadata = { title: 'Statistics — Training Analytics' }
@@ -18,6 +20,7 @@ const DEFAULT_ZONES: HRZoneSettings = {
   id: '', user_id: '', updated_at: '',
   zone1_max: 130, zone2_max: 148, zone3_max: 162, zone4_max: 174,
   zone1_name: 'I1', zone2_name: 'I2', zone3_name: 'I3', zone4_name: 'I4', zone5_name: 'I5',
+  rest_day_threshold_minutes: 0,
 }
 
 function getDateRange(range: TimeRange, offset: number): { start: Date; end: Date; label: string } {
@@ -57,6 +60,10 @@ function getDateRange(range: TimeRange, offset: number): { start: Date; end: Dat
   return { start: new Date(2000, 0, 1), end: new Date(2099, 0, 1), label: 'All time' }
 }
 
+function toLocalDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default async function StatisticsPage({
   searchParams,
 }: {
@@ -65,7 +72,7 @@ export default async function StatisticsPage({
   const session = await getSession()
   if (!session) redirect('/')
 
-  const range = (searchParams.range ?? 'month') as TimeRange
+  const range = (searchParams.range ?? 'week') as TimeRange
   const offset = parseInt(searchParams.offset ?? '0')
 
   const { start, end, label } = getDateRange(range, offset)
@@ -76,12 +83,14 @@ export default async function StatisticsPage({
     db.from('activities')
       .select('*')
       .eq('user_id', session.userId)
+      .eq('hidden', false)
       .gte('start_date', start.toISOString())
       .lt('start_date', end.toISOString())
       .order('start_date', { ascending: true }),
     db.from('activities')
       .select('*')
       .eq('user_id', session.userId)
+      .eq('hidden', false)
       .gte('start_date', start.toISOString())
       .lt('start_date', end.toISOString()),
     db.from('hr_zone_settings').select('*').eq('user_id', session.userId).maybeSingle(),
@@ -112,11 +121,33 @@ export default async function StatisticsPage({
   const zoneRows = zoneSecondsToRows(summary.zoneSeconds, zones)
 
   const totalSeconds = (rangeActivities ?? []).reduce(
-    (sum, a) => sum + (a.overridden_duration ?? a.moving_time ?? a.elapsed_time), 0
+    (sum, a) => sum + effectiveContributionSeconds(a), 0
   )
   const totalH = Math.floor(totalSeconds / 3600)
   const totalM = Math.round((totalSeconds % 3600) / 60)
   const totalHoursLabel = totalM > 0 ? `${totalH}h ${totalM}m` : `${totalH}h`
+
+  // Compute rest days: group activities by calendar day, count days below threshold
+  const thresholdSeconds = zones.rest_day_threshold_minutes * 60
+  const dayTotals = new Map<string, number>()
+  const today = new Date()
+  today.setHours(23, 59, 59, 999)
+
+  // Build day map for the range
+  const cursor = new Date(start)
+  while (cursor < end && cursor <= today) {
+    dayTotals.set(toLocalDateKey(cursor), 0)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  for (const a of rangeActivities ?? []) {
+    const key = toLocalDateKey(new Date(a.start_date))
+    if (dayTotals.has(key)) {
+      dayTotals.set(key, (dayTotals.get(key) ?? 0) + effectiveContributionSeconds(a))
+    }
+  }
+  const restDayCount = Array.from(dayTotals.values()).filter((v) =>
+    zones.rest_day_threshold_minutes === 0 ? v === 0 : v < thresholdSeconds
+  ).length
 
   return (
     <AppShell>
@@ -160,12 +191,23 @@ export default async function StatisticsPage({
           </div>
         </div>
 
-        {/* Intensity breakdown */}
-        <div className="border border-[#e5e5e5] rounded-lg p-5">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-            Intensity Breakdown
-          </h2>
-          <IntensityBreakdown activities={rangeActivities ?? []} />
+        {/* Intensity breakdown + Rest days */}
+        <div className="grid grid-cols-3 gap-6">
+          <div className="col-span-2 border border-[#e5e5e5] rounded-lg p-5">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              Intensity Breakdown
+            </h2>
+            <IntensityBreakdown activities={rangeActivities ?? []} />
+          </div>
+          <div className="border border-[#e5e5e5] rounded-lg p-5">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              Rest Days
+            </h2>
+            <RestDaysWidget
+              restDayCount={restDayCount}
+              thresholdMinutes={zones.rest_day_threshold_minutes}
+            />
+          </div>
         </div>
       </div>
     </AppShell>

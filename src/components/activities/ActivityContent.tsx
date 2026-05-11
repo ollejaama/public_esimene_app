@@ -61,6 +61,18 @@ export function ActivityContent({
   const showSpeedChart = showHRChart && hasGPS && speedData !== null
   const showElevationChart = showHRChart && hasGPS && elevationData != null && elevationData.length > 0
 
+  // Manual activities have no GPS/HR/lap data — show only stats
+  if (activity.is_manual) {
+    return (
+      <div className="space-y-6">
+        <div className="border border-[#e5e5e5] rounded-lg p-5">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Stats</h2>
+          <ActivityStatsPanel activity={activity} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="border border-[#e5e5e5] rounded-lg p-5">

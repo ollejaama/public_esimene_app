@@ -16,7 +16,7 @@ interface PlanActivityModalProps {
 
 export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'morning', onClose, onSaved }: PlanActivityModalProps) {
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'evening'>(activity?.time_of_day ?? initialTimeOfDay)
-  const [intensityType, setIntensityType] = useState<'regular' | 'interval' | 'speed'>(activity?.intensity_type ?? 'regular')
+  const [intensityType, setIntensityType] = useState<'regular' | 'interval' | 'speed' | 'competition'>(activity?.intensity_type ?? 'regular')
   const [sportType, setSportType] = useState(activity?.sport_type ?? PLANNED_SPORT_TYPES[0])
   const [hours, setHours] = useState(
     activity ? Math.floor(activity.duration_minutes / 60) : 1
@@ -130,18 +130,22 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
 
         {/* Intensity type */}
         <div className="flex gap-2">
-          {(['regular', 'interval', 'speed'] as const).map((val) => (
+          {(['regular', 'interval', 'speed', 'competition'] as const).map((val) => (
             <button
               key={val}
               type="button"
               onClick={() => setIntensityType(val)}
               className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
                 intensityType === val
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'bg-white text-gray-500 border-[#e5e5e5] hover:border-gray-400'
+                  ? val === 'competition'
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-gray-900 text-white border-gray-900'
+                  : val === 'competition'
+                    ? 'bg-white text-amber-600 border-amber-200 hover:border-amber-400'
+                    : 'bg-white text-gray-500 border-[#e5e5e5] hover:border-gray-400'
               }`}
             >
-              {val.charAt(0).toUpperCase() + val.slice(1)}
+              {val === 'competition' ? '★ Comp' : val.charAt(0).toUpperCase() + val.slice(1)}
             </button>
           ))}
         </div>

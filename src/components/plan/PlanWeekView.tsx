@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PlannedActivity } from '@/lib/supabase/types'
-import { WeekNavigator } from '@/components/dashboard/WeekNavigator'
+import { WeekNavigator } from '@/components/ui/WeekNavigator'
 import { PlanActivityModal } from './PlanActivityModal'
 import { SPORT_COLORS, PLANNED_SPORT_COLOR_KEY } from '@/lib/constants'
 
@@ -129,20 +129,29 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-300 mb-1">☀ Morning</p>
                 <div className="space-y-1 mb-1.5">
                   {morning.map((a) => {
-                    const color = getSportColor(a.sport_type)
+                    const color = a.intensity_type === 'interval' ? '#ef4444' : getSportColor(a.sport_type)
+                    const isComp = a.intensity_type === 'competition'
                     return (
                       <button
                         key={a.id}
                         onClick={() => setModal({ mode: 'edit', date: dateKey, activity: a, timeOfDay: 'morning' })}
                         className="w-full text-left"
                       >
-                        <span
-                          className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity"
-                          style={{ backgroundColor: `${color}30`, color }}
-                        >
-                          <span className="truncate">{a.sport_type}</span>
-                          <span className="ml-auto shrink-0 opacity-70">{formatDurationMinutes(a.duration_minutes)}</span>
-                        </span>
+                        {isComp ? (
+                          <span className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-bold hover:opacity-80 transition-opacity bg-amber-400 text-white border border-amber-500 shadow-sm">
+                            <span className="shrink-0">★</span>
+                            <span className="truncate">{a.sport_type}</span>
+                            <span className="ml-auto shrink-0 opacity-90">{formatDurationMinutes(a.duration_minutes)}</span>
+                          </span>
+                        ) : (
+                          <span
+                            className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity"
+                            style={{ backgroundColor: `${color}30`, color }}
+                          >
+                            <span className="truncate">{a.sport_type}</span>
+                            <span className="ml-auto shrink-0 opacity-70">{formatDurationMinutes(a.duration_minutes)}</span>
+                          </span>
+                        )}
                       </button>
                     )
                   })}
@@ -166,20 +175,29 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-300 mb-1">☽ Evening</p>
                 <div className="space-y-1 mb-1.5">
                   {evening.map((a) => {
-                    const color = getSportColor(a.sport_type)
+                    const color = a.intensity_type === 'interval' ? '#ef4444' : getSportColor(a.sport_type)
+                    const isComp = a.intensity_type === 'competition'
                     return (
                       <button
                         key={a.id}
                         onClick={() => setModal({ mode: 'edit', date: dateKey, activity: a, timeOfDay: 'evening' })}
                         className="w-full text-left"
                       >
-                        <span
-                          className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity"
-                          style={{ backgroundColor: `${color}30`, color }}
-                        >
-                          <span className="truncate">{a.sport_type}</span>
-                          <span className="ml-auto shrink-0 opacity-70">{formatDurationMinutes(a.duration_minutes)}</span>
-                        </span>
+                        {isComp ? (
+                          <span className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-bold hover:opacity-80 transition-opacity bg-amber-400 text-white border border-amber-500 shadow-sm">
+                            <span className="shrink-0">★</span>
+                            <span className="truncate">{a.sport_type}</span>
+                            <span className="ml-auto shrink-0 opacity-90">{formatDurationMinutes(a.duration_minutes)}</span>
+                          </span>
+                        ) : (
+                          <span
+                            className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity"
+                            style={{ backgroundColor: `${color}30`, color }}
+                          >
+                            <span className="truncate">{a.sport_type}</span>
+                            <span className="ml-auto shrink-0 opacity-70">{formatDurationMinutes(a.duration_minutes)}</span>
+                          </span>
+                        )}
                       </button>
                     )
                   })}

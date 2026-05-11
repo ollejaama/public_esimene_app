@@ -119,9 +119,24 @@ export function HRZoneForm({ initialZones }: HRZoneFormProps) {
         </tbody>
       </table>
 
+      {/* Rest day threshold */}
+      <div className="pt-4 border-t border-[#f0f0f0]">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Rest day threshold (minutes)</label>
+        <p className="text-xs text-gray-400 mb-2">
+          Days with total training below this count as rest days. 0 = only days with no training at all.
+        </p>
+        <input
+          type="number"
+          min={0}
+          value={zones.rest_day_threshold_minutes}
+          onChange={(e) => setZones((prev) => ({ ...prev, rest_day_threshold_minutes: Math.max(0, parseInt(e.target.value) || 0) }))}
+          className="w-24 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+        />
+      </div>
+
       <div className="flex items-center gap-3 pt-2">
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving…' : 'Save zones'}
+          {saving ? 'Saving…' : 'Save settings'}
         </Button>
         {saved && <span className="text-sm text-green-600">Saved</span>}
         {error && <span className="text-sm text-red-600">{error}</span>}

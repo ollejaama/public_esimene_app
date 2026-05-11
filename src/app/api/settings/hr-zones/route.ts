@@ -22,6 +22,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       zone3_name: body.zone3_name,
       zone4_name: body.zone4_name,
       zone5_name: body.zone5_name,
+      rest_day_threshold_minutes: body.rest_day_threshold_minutes != null
+        ? Number(body.rest_day_threshold_minutes)
+        : 0,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' }

@@ -19,6 +19,7 @@ const DEFAULT_ZONES = {
   zone3_name: 'I3',
   zone4_name: 'I4',
   zone5_name: 'I5',
+  rest_day_threshold_minutes: 0,
 }
 
 export default async function SettingsPage() {
@@ -43,6 +44,7 @@ export default async function SettingsPage() {
         zone3_name: zoneData.zone3_name,
         zone4_name: zoneData.zone4_name,
         zone5_name: zoneData.zone5_name,
+        rest_day_threshold_minutes: zoneData.rest_day_threshold_minutes ?? 0,
       }
     : DEFAULT_ZONES
 

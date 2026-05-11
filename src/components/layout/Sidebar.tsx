@@ -8,9 +8,8 @@ const NAV_SECTIONS = [
   {
     label: 'Analyse',
     items: [
-      { href: '/dashboard', label: 'Dashboard' },
-      { href: '/statistics', label: 'Statistics' },
       { href: '/activities', label: 'Calendar' },
+      { href: '/statistics', label: 'Statistics' },
     ],
   },
   {

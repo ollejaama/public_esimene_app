@@ -8,9 +8,10 @@ interface StrengthSubtypeSelectorProps {
   activityId: string
   currentTag: string | null
   sportType: string
+  onChanged?: (tag: string | null) => void
 }
 
-export function StrengthSubtypeSelector({ activityId, currentTag, sportType }: StrengthSubtypeSelectorProps) {
+export function StrengthSubtypeSelector({ activityId, currentTag, sportType, onChanged }: StrengthSubtypeSelectorProps) {
   const [tag, setTag] = useState<string | null>(currentTag)
   const [saving, setSaving] = useState(false)
   const router = useRouter()
@@ -28,7 +29,11 @@ export function StrengthSubtypeSelector({ activityId, currentTag, sportType }: S
     })
     setTag(newTag)
     setSaving(false)
-    router.refresh()
+    if (onChanged) {
+      onChanged(newTag)
+    } else {
+      router.refresh()
+    }
   }
 
   const isBasic = tag === 'strength_basic'

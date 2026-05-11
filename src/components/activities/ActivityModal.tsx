@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Modal } from '@/components/ui/Modal'
 import { Spinner } from '@/components/ui/Spinner'
@@ -12,6 +13,7 @@ import { getActivityTitle } from '@/lib/activity'
 interface ActivityModalProps {
   activityId: string | null
   onClose: () => void
+  isCoach?: boolean
 }
 
 interface ActivityDetail {
@@ -23,10 +25,12 @@ interface ActivityDetail {
   laps: ActivityLap[]
 }
 
-export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
+export function ActivityModal({ activityId, onClose, isCoach = false }: ActivityModalProps) {
+  const router = useRouter()
   const [detail, setDetail] = useState<ActivityDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [savingHidden, setSavingHidden] = useState(false)
 
   useEffect(() => {
     if (!activityId) {
@@ -47,6 +51,20 @@ export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
       })
   }, [activityId])
 
+  async function handleToggleHidden() {
+    if (!detail) return
+    setSavingHidden(true)
+    const newHidden = !detail.activity.hidden
+    await fetch(`/api/activity/${activityId}/hidden`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hidden: newHidden }),
+    })
+    setDetail((prev) => prev ? { ...prev, activity: { ...prev.activity, hidden: newHidden } } : prev)
+    setSavingHidden(false)
+    router.refresh()
+  }
+
   const activitySeconds = detail
     ? (detail.activity.moving_time ?? detail.activity.elapsed_time)
     : 0
@@ -63,15 +81,50 @@ export function ActivityModal({ activityId, onClose }: ActivityModalProps) {
         {detail && !loading && (
           <div className="space-y-4">
             <div className="flex items-start justify-between pr-8">
-              <h2 className="text-base font-semibold text-gray-900">
-                {getActivityTitle(detail.activity)}
-              </h2>
-              <Link
-                href={`/activities/${activityId}?from=activities&expanded=true`}
-                className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 shrink-0 ml-3 mt-0.5 transition-colors"
-              >
-                ↗ expanded view
-              </Link>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-semibold text-gray-900">
+                  {getActivityTitle(detail.activity)}
+                </h2>
+                {detail.activity.hidden && (
+                  <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-200 text-gray-500 leading-none">hidden</span>
+                )}
+                {detail.activity.is_manual && (
+                  <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-100 text-gray-500 leading-none">manual</span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0 ml-3 mt-0.5">
+                {!isCoach && (
+                  <button
+                    onClick={handleToggleHidden}
+                    disabled={savingHidden}
+                    className="text-xs text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-40 flex items-center gap-1"
+                  >
+                    {detail.activity.hidden ? (
+                      <>
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                        Unhide
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+                          <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                        </svg>
+                        Hide
+                      </>
+                    )}
+                  </button>
+                )}
+                <Link
+                  href={`/activities/${activityId}?from=activities&expanded=true`}
+                  className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors"
+                >
+                  ↗ expanded view
+                </Link>
+              </div>
             </div>
             <ActivityContent
               activity={detail.activity}

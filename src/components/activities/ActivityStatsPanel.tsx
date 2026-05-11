@@ -4,6 +4,8 @@ import { effectiveSportKey } from '@/lib/activity'
 import { DurationEditor } from './DurationEditor'
 import { SportTypeEditor } from './SportTypeEditor'
 import { IntensityEditor } from './IntensityEditor'
+import { ContributionEditor } from './ContributionEditor'
+import { HideToggle } from './HideToggle'
 
 interface ActivityStatsPanelProps {
   activity: Activity
@@ -72,6 +74,18 @@ export function ActivityStatsPanel({ activity }: ActivityStatsPanelProps) {
           initialValue={activity.intensity_type}
         />
       )}
+
+      {/* Partial contribution */}
+      <ContributionEditor
+        activityId={activity.id}
+        initialHours={activity.contribution_hours ?? null}
+      />
+
+      {/* Hide toggle */}
+      <HideToggle
+        activityId={activity.id}
+        initialHidden={activity.hidden}
+      />
 
       {stats.map(({ label, value }) => (
         <div key={label}>

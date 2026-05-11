@@ -1,7 +1,7 @@
 import { Activity } from '@/lib/supabase/types'
 import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { getISOWeek } from './weekSummary'
-import { effectiveDuration, effectiveSportKey } from '@/lib/activity'
+import { effectiveSportKey, effectiveContributionSeconds } from '@/lib/activity'
 
 export interface WeeklyVolumeBar {
   label: string      // Display label for X axis
@@ -27,7 +27,7 @@ export function groupByWeek(activities: Activity[], sports?: string[]): WeeklyVo
     const sportKey = effectiveSportKey(activity)
 
     if (!sports || sports.includes(sportKey)) {
-      const hours = effectiveDuration(activity) / 3600
+      const hours = effectiveContributionSeconds(activity) / 3600
       bar[sportKey] = ((bar[sportKey] as number) ?? 0) + hours
     }
   }
@@ -76,7 +76,7 @@ export function groupByDay(
     const sportKey = effectiveSportKey(activity)
 
     if (!sports || sports.includes(sportKey)) {
-      const hours = effectiveDuration(activity) / 3600
+      const hours = effectiveContributionSeconds(activity) / 3600
       bar[sportKey] = ((bar[sportKey] as number) ?? 0) + hours
     }
   }
@@ -106,7 +106,7 @@ export function groupByMonth(
     const sportKey = effectiveSportKey(activity)
 
     if (!sports || sports.includes(sportKey)) {
-      const hours = effectiveDuration(activity) / 3600
+      const hours = effectiveContributionSeconds(activity) / 3600
       bar[sportKey] = ((bar[sportKey] as number) ?? 0) + hours
     }
   }
