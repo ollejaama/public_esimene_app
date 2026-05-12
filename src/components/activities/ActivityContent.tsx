@@ -25,6 +25,7 @@ interface ActivityContentProps {
   showHRChart?: boolean
   /** Elevation data from GPS stream (one meter value per second) */
   elevationData?: number[] | null
+  showDangerControls?: boolean
 }
 
 export function ActivityContent({
@@ -36,6 +37,7 @@ export function ActivityContent({
   activitySeconds,
   showHRChart = false,
   elevationData,
+  showDangerControls = true,
 }: ActivityContentProps) {
   const hasHR = zoneRows.some((z) => z.seconds > 0)
   const hrCovered = zoneRows.reduce((sum, z) => sum + z.seconds, 0)
@@ -67,7 +69,7 @@ export function ActivityContent({
       <div className="space-y-6">
         <div className="border border-[#e5e5e5] rounded-lg p-5">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Stats</h2>
-          <ActivityStatsPanel activity={activity} />
+          <ActivityStatsPanel activity={activity} showDangerControls={showDangerControls} />
         </div>
       </div>
     )
@@ -77,7 +79,7 @@ export function ActivityContent({
     <div className="space-y-6">
       <div className="border border-[#e5e5e5] rounded-lg p-5">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Stats</h2>
-        <ActivityStatsPanel activity={activity} />
+        <ActivityStatsPanel activity={activity} showDangerControls={showDangerControls} />
       </div>
 
       {hasHR && (

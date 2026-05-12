@@ -13,6 +13,7 @@ import { HideToggle } from './HideToggle'
 
 interface ActivityStatsPanelProps {
   activity: Activity
+  showDangerControls?: boolean
 }
 
 function formatDistance(meters: number): string {
@@ -41,7 +42,7 @@ function formatDateFull(iso: string): string {
 
 interface Stat { label: string; value: string }
 
-export function ActivityStatsPanel({ activity }: ActivityStatsPanelProps) {
+export function ActivityStatsPanel({ activity, showDangerControls = true }: ActivityStatsPanelProps) {
   const sportKey = effectiveSportKey(activity)
   const isStrength = sportKey === 'Strength' || sportKey === 'strength_basic'
   const isRunning = isRunningActivity(activity)
@@ -81,16 +82,20 @@ export function ActivityStatsPanel({ activity }: ActivityStatsPanelProps) {
       )}
 
       {/* Partial contribution */}
-      <ContributionEditor
-        activityId={activity.id}
-        initialHours={activity.contribution_hours ?? null}
-      />
+      {showDangerControls && (
+        <ContributionEditor
+          activityId={activity.id}
+          initialHours={activity.contribution_hours ?? null}
+        />
+      )}
 
       {/* Hide toggle */}
-      <HideToggle
-        activityId={activity.id}
-        initialHidden={activity.hidden}
-      />
+      {showDangerControls && (
+        <HideToggle
+          activityId={activity.id}
+          initialHidden={activity.hidden}
+        />
+      )}
 
       {stats.map(({ label, value }) => (
         <div key={label}>

@@ -8,6 +8,8 @@ import { ActivityContent } from './ActivityContent'
 import { SportTagSelector } from './SportTagSelector'
 import { StrengthSubtypeSelector } from './StrengthSubtypeSelector'
 import { NotesEditor } from './NotesEditor'
+import { ContributionEditor } from './ContributionEditor'
+import { HideToggle } from './HideToggle'
 
 interface ActivityDetailClientProps {
   activity: Activity
@@ -52,7 +54,18 @@ export function ActivityDetailClient({ activity, zoneRows, latlng, hrData, laps,
         activitySeconds={activitySeconds}
         showHRChart={expanded}
         elevationData={elevationData}
+        showDangerControls={false}
       />
+      <div className="border-t border-[#e5e5e5] pt-6 space-y-3">
+        <ContributionEditor
+          activityId={activity.id}
+          initialHours={activity.contribution_hours ?? null}
+        />
+        <HideToggle
+          activityId={activity.id}
+          initialHidden={activity.hidden}
+        />
+      </div>
     </div>
   )
 }
