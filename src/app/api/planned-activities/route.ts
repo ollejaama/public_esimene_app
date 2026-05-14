@@ -7,6 +7,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = req.nextUrl
+  const db = createServiceClient()
+
+  // Lightweight change-detection poll used by PlanRefresher
+  if (searchParams.get('check') === '1') {
+    const [{ data }, { count }] = await Promise.all([
+      db
+        .from('planned_activities')
+        .select('updated_at')
+        .eq('user_id', session.userId)
+        .order('updated_at', { ascending: false })
+        .limit(1),
+      db
+        .from('planned_activities')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.userId),
+    ])
+    return NextResponse.json({ latestAt: data?.[0]?.updated_at ?? null, count: count ?? 0 })
+  }
+
   const weekStart = searchParams.get('weekStart')
   const weekEnd = searchParams.get('weekEnd')
 
@@ -14,7 +33,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'weekStart and weekEnd required' }, { status: 400 })
   }
 
-  const db = createServiceClient()
   const { data, error } = await db
     .from('planned_activities')
     .select('*')
