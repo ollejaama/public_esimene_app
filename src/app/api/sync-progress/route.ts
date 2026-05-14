@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getSessionFromRequest } from '@/lib/session'
-import { getSyncProgress } from '@/lib/sync/store'
+import { getSyncProgressFromDB } from '@/lib/sync/store'
 
 export async function GET(req: NextRequest): Promise<Response> {
   const session = await getSessionFromRequest(req)
@@ -16,8 +16,8 @@ export async function GET(req: NextRequest): Promise<Response> {
         controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
       }
 
-      const interval = setInterval(() => {
-        const progress = getSyncProgress(userId)
+      const interval = setInterval(async () => {
+        const progress = await getSyncProgressFromDB(userId)
         send(progress)
 
         if (progress.status === 'complete' || progress.status === 'error') {

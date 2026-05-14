@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { getSessionFromRequest } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getValidAccessToken, getActivities, getHRStream, getGPSStream, getLaps } from '@/lib/strava/api'
@@ -28,8 +29,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const mode = searchParams.get('mode') ?? 'incremental'  // 'full' | 'incremental'
   const { userId } = session
 
-  // Run sync in background — respond immediately, progress tracked via SSE
-  runSync(userId, mode === 'full').catch(console.error)
+  // Keep the serverless function alive until sync completes (Vercel waitUntil)
+  waitUntil(runSync(userId, mode === 'full'))
 
   return NextResponse.json({ ok: true, message: 'Sync started' })
 }

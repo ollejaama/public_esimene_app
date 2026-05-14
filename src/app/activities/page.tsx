@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/layout/AppShell'
 import { ActivityCalendar } from '@/components/activities/ActivityCalendar'
+import { SyncRefresher } from '@/components/sync/SyncRefresher'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -43,6 +44,7 @@ export default async function ActivitiesPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-gray-900">Calendar</h1>
       </div>
+      <SyncRefresher />
       <ActivityCalendar
         activities={activities ?? []}
         initialMonth={new Date(now.getFullYear(), now.getMonth(), 1)}

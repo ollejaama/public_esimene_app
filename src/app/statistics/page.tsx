@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/layout/AppShell'
+import { SyncRefresher } from '@/components/sync/SyncRefresher'
 import { TimeRangeSelector, TimeRange } from '@/components/statistics/TimeRangeSelector'
 import { ZoneProgressionChart } from '@/components/statistics/ZoneProgressionChart'
 import { SeasonalVolumeWidget } from '@/components/statistics/SeasonalVolumeWidget'
@@ -170,6 +171,7 @@ export default async function StatisticsPage({
         <h1 className="text-xl font-semibold text-gray-900">Statistics</h1>
       </div>
 
+      <SyncRefresher />
       <TimeRangeSelector current={range} offset={offset} periodLabel={label} />
 
       <div className="space-y-6">
