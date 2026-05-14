@@ -1,6 +1,5 @@
 import { AppShell } from '@/components/layout/AppShell'
 import { PlanWeekView } from '@/components/plan/PlanWeekView'
-import { PlanRefresher } from '@/components/sync/PlanRefresher'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getISOWeek, getWeekStart, getWeekEnd } from '@/lib/analytics/weekSummary'
@@ -40,8 +39,7 @@ export default async function PlanPage({
 
   return (
     <AppShell>
-      <PlanRefresher />
-      <PlanWeekView
+<PlanWeekView
         plannedActivities={plannedActivities ?? []}
         weekStart={weekStart}
         week={week}
