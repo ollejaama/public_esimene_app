@@ -10,7 +10,7 @@ import { IntensityBreakdown } from '@/components/statistics/IntensityBreakdown'
 import { RestDaysWidget } from '@/components/statistics/RestDaysWidget'
 import { RPEWidget } from '@/components/statistics/RPEWidget'
 import { IllnessWidget } from '@/components/statistics/IllnessWidget'
-import { DecouplingChart } from '@/components/statistics/DecouplingChart'
+import { DecouplingWidget } from '@/components/statistics/DecouplingWidget'
 import { LactateChart } from '@/components/statistics/LactateChart'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -275,7 +275,7 @@ export default async function StatisticsPage({
           </div>
         </div>
 
-        {/* Intensity breakdown + Rest days + Illness + RPE */}
+        {/* Intensity breakdown + Rest days + Illness + Decoupling */}
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-2 border border-[#e5e5e5] rounded-lg p-5">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
@@ -303,6 +303,12 @@ export default async function StatisticsPage({
                 end={end}
               />
             </div>
+            <div className="border border-[#e5e5e5] rounded-lg p-5">
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                Aerobic Decoupling
+              </h2>
+              <DecouplingWidget activities={rangeActivities ?? []} />
+            </div>
           </div>
         </div>
 
@@ -315,24 +321,6 @@ export default async function StatisticsPage({
             <RPEWidget
               activities={rangeActivities ?? []}
               scale={(userSettingsData.rpe_scale as 'rpe' | 'borg') ?? 'rpe'}
-            />
-          </div>
-        )}
-
-        {/* Aerobic Decoupling */}
-        {(rangeActivities ?? []).some((a) => a.decoupling_percent != null) && (
-          <div className="border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Aerobic Decoupling
-            </h2>
-            <p className="text-[10px] text-gray-400 mb-3">
-              Dashed lines: 5% (yellow) and 8% (red) thresholds
-            </p>
-            <DecouplingChart
-              activities={rangeActivities ?? []}
-              range={range}
-              start={start}
-              end={end}
             />
           </div>
         )}

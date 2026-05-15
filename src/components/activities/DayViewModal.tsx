@@ -132,6 +132,9 @@ export function DayViewModal({ date, activities, onActivityClick, onClose, illne
           <h2 className="text-base font-semibold text-gray-900 mb-5 pr-6">{dateLabel}</h2>
 
           <div className="space-y-4">
+            {activities.length === 0 && illnessEntries.length === 0 && (
+              <p className="text-sm text-gray-400 px-1">Rest day</p>
+            )}
             {morning.length > 0 && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1 px-1">

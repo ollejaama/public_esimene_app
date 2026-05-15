@@ -8,7 +8,6 @@ import { ActivityPreviewModal } from './ActivityPreviewModal'
 import { ActivityExpandedModal } from './ActivityExpandedModal'
 import { DayViewModal } from './DayViewModal'
 import { ManualActivityModal } from './ManualActivityModal'
-import { Modal } from '@/components/ui/Modal'
 import { getISOWeek } from '@/lib/analytics/weekSummary'
 
 interface UserSettings {
@@ -66,7 +65,6 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<{ date: Date; activities: Activity[]; dateKey: string } | null>(null)
-  const [restDayPopup, setRestDayPopup] = useState<Date | null>(null)
   const [showManualModal, setShowManualModal] = useState(false)
 
   function handleDayActivityClick(activity: Activity) {
@@ -76,16 +74,11 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
 
   function handleDayClick(day: Date) {
     const dateKey = toDateKey(day)
-    const dayActivities = activityMap.get(dateKey) ?? []
-    const dayIllness = illnessEntries.filter((e) => e.start_date <= dateKey && e.end_date >= dateKey)
-    if (dayActivities.length > 0 || dayIllness.length > 0) {
-      setSelectedDay({ date: day, activities: dayActivities, dateKey })
-      return
-    }
     const todayEnd = new Date()
     todayEnd.setHours(23, 59, 59, 999)
     if (day <= todayEnd) {
-      setRestDayPopup(day)
+      // All past/today days open DayViewModal so illness log is always accessible
+      setSelectedDay({ date: day, activities: activityMap.get(dateKey) ?? [], dateKey })
     } else {
       const { week, year } = getISOWeek(day)
       router.push(`/plan?week=${week}&year=${year}`)
@@ -211,17 +204,6 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
       {showManualModal && (
         <ManualActivityModal onClose={() => setShowManualModal(false)} />
       )}
-
-      <Modal open={restDayPopup !== null} onClose={() => setRestDayPopup(null)} maxWidth="max-w-xs" align="center">
-        {restDayPopup && (
-          <div className="p-6 text-center">
-            <p className="text-xs text-gray-400 mb-1">
-              {restDayPopup.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-            <p className="text-base font-semibold text-gray-500">Rest day</p>
-          </div>
-        )}
-      </Modal>
     </>
   )
 }

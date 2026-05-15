@@ -4,8 +4,9 @@ import { SPORT_TYPE_MAP } from '@/lib/constants'
 // Sports eligible for decoupling analysis (need valid outdoor GPS + HR)
 const ELIGIBLE_SPORT_CATEGORIES = new Set(['Running', 'Cycling', 'Skiing'])
 
-export function isEligibleForDecoupling(sportType: string, customSportTag: string | null): boolean {
-  // Treadmill skiing uses GPS (treadmill_skiing tag) — exclude by custom tag
+export function isEligibleForDecoupling(sportType: string, customSportTag: string | null, intensityType?: string | null): boolean {
+  // Only steady aerobic efforts — intervals/speed/competition show artificial decoupling
+  if (intensityType === 'interval' || intensityType === 'speed' || intensityType === 'competition') return false
   if (customSportTag === 'treadmill_skiing' || customSportTag === 'strength_basic') return false
   const category = SPORT_TYPE_MAP[sportType] ?? 'Other'
   return ELIGIBLE_SPORT_CATEGORIES.has(category)

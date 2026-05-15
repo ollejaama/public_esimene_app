@@ -44,7 +44,7 @@ export async function GET(
   if (
     decoupling_percent === null &&
     hrStream && gpsStream &&
-    isEligibleForDecoupling(activity.sport_type, activity.custom_sport_tag)
+    isEligibleForDecoupling(activity.sport_type, activity.custom_sport_tag, activity.intensity_type)
   ) {
     const computed = computeDecoupling(hrStream.hr_data, gpsStream.latlng_data, activitySeconds)
     if (computed !== null) {
