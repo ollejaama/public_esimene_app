@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { HRZoneForm } from '@/components/settings/HRZoneForm'
 import { UserSettingsForm } from '@/components/settings/UserSettingsForm'
 import { StravaSyncSection } from '@/components/settings/StravaSyncSection'
+import { BackfillDecouplingButton } from '@/components/settings/BackfillDecouplingButton'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { Card } from '@/components/ui/Card'
@@ -73,6 +74,13 @@ export default async function SettingsPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Strava Sync</h2>
           <StravaSyncSection lastSyncedAt={profileData?.last_synced_at ?? null} />
         </Card>
+
+        {session.role !== 'coach' && (
+          <Card className="p-6">
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Data</h2>
+            <BackfillDecouplingButton />
+          </Card>
+        )}
       </div>
     </AppShell>
   )
