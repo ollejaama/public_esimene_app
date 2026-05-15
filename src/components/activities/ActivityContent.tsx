@@ -25,6 +25,7 @@ interface ActivityContentProps {
   showHRChart?: boolean
   /** Elevation data from GPS stream (one meter value per second) */
   elevationData?: number[] | null
+  zoneBoundaries?: { zone1_max: number; zone2_max: number; zone3_max: number; zone4_max: number }
   showDangerControls?: boolean
 }
 
@@ -37,6 +38,7 @@ export function ActivityContent({
   activitySeconds,
   showHRChart = false,
   elevationData,
+  zoneBoundaries,
   showDangerControls = true,
 }: ActivityContentProps) {
   const hasHR = zoneRows.some((z) => z.seconds > 0)
@@ -47,9 +49,12 @@ export function ActivityContent({
   const isRunning = (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other') === 'Running'
 
   // Compute speed from GPS (memoized — only when GPS data is present)
+  // secondsPerSample corrects for Strava streams sampled at less than 1 Hz
+  const secondsPerSample = hasGPS && latlng.length > 0 ? activitySeconds / latlng.length : 1
   const speedData = useMemo(
-    () => (hasGPS ? computeSpeedKmh(latlng) : null),
-    [latlng, hasGPS]
+    () => (hasGPS ? computeSpeedKmh(latlng, secondsPerSample) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [latlng, hasGPS, secondsPerSample]
   )
 
   // Slider scrub index — shared across map, HR chart, and speed chart
@@ -58,6 +63,14 @@ export function ActivityContent({
     hrData ? hrData.length - 1 : Infinity
   )
   const [sliderIndex, setSliderIndex] = useState(0)
+
+  // Scale slider index to actual seconds for each chart's ReferenceLine
+  const hrHighlightSec = hrData && hrData.length > 0
+    ? Math.round(sliderIndex * activitySeconds / hrData.length)
+    : sliderIndex
+  const gpsHighlightSec = latlng.length > 0
+    ? Math.round(sliderIndex * activitySeconds / latlng.length)
+    : sliderIndex
 
   const showSlider = showHRChart && hasGPS && sliderMax > 0 && isFinite(sliderMax)
   const showSpeedChart = showHRChart && hasGPS && speedData !== null
@@ -75,11 +88,27 @@ export function ActivityContent({
     )
   }
 
+
   return (
     <div className="space-y-6">
       <div className="border border-[#e5e5e5] rounded-lg p-5">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Stats</h2>
         <ActivityStatsPanel activity={activity} showDangerControls={showDangerControls} />
+        {activity.decoupling_percent != null && (() => {
+          const d = activity.decoupling_percent!
+          const [bg, text, label] = d < 5
+            ? ['bg-green-50', 'text-green-700', 'Good aerobic efficiency']
+            : d <= 8
+            ? ['bg-yellow-50', 'text-yellow-700', 'Moderate decoupling']
+            : ['bg-red-50', 'text-red-700', 'Significant decoupling']
+          return (
+            <div className={`mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>
+              <span>{d.toFixed(1)}% decoupling</span>
+              <span className="opacity-60">·</span>
+              <span>{label}</span>
+            </div>
+          )
+        })()}
       </div>
 
       {hasHR && (
@@ -121,7 +150,7 @@ export function ActivityContent({
       {showHRChart && hrData && hrData.length > 0 && (
         <div className="border border-[#e5e5e5] rounded-lg p-5">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Heart Rate</h2>
-          <HRLineChart hrData={hrData} highlightIndex={showSlider ? sliderIndex : undefined} />
+          <HRLineChart hrData={hrData} totalSeconds={activitySeconds} zoneBoundaries={zoneBoundaries} highlightIndex={showSlider ? hrHighlightSec : undefined} />
         </div>
       )}
 
@@ -133,7 +162,8 @@ export function ActivityContent({
           <SpeedLineChart
             speedData={speedData}
             isRunning={isRunning}
-            highlightIndex={showSlider ? sliderIndex : undefined}
+            totalSeconds={activitySeconds}
+            highlightIndex={showSlider ? gpsHighlightSec : undefined}
           />
         </div>
       )}
@@ -143,7 +173,8 @@ export function ActivityContent({
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Elevation</h2>
           <ElevationChart
             elevationData={elevationData}
-            highlightIndex={showSlider ? sliderIndex : undefined}
+            totalSeconds={activitySeconds}
+            highlightIndex={showSlider ? gpsHighlightSec : undefined}
           />
         </div>
       )}

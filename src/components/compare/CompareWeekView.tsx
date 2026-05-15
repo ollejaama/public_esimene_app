@@ -1,13 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { PlannedActivity, Activity } from '@/lib/supabase/types'
+import { PlannedActivity, Activity, IllnessLog } from '@/lib/supabase/types'
 import { WeekNavigator } from '@/components/ui/WeekNavigator'
 import { ActivityModal } from '@/components/activities/ActivityModal'
 import { PlannedActivityPreviewModal } from '@/components/activities/PlannedActivityPreviewModal'
 import { SPORT_COLORS, PLANNED_SPORT_COLOR_KEY, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { getActivityTitle, effectiveSportKey } from '@/lib/activity'
 import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
+
+const ILLNESS_COLORS: Record<string, string> = {
+  sick: '#ef4444',
+  injured: '#fb923c',
+  fatigue: '#facc15',
+}
 
 interface CompareWeekViewProps {
   plannedActivities: PlannedActivity[]
@@ -16,6 +22,7 @@ interface CompareWeekViewProps {
   week: number
   year: number
   isCoach?: boolean
+  illnessEntries?: IllnessLog[]
 }
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -53,6 +60,7 @@ export function CompareWeekView({
   week,
   year,
   isCoach = false,
+  illnessEntries = [],
 }: CompareWeekViewProps) {
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [selectedPlanned, setSelectedPlanned] = useState<PlannedActivity | null>(null)
@@ -110,19 +118,34 @@ export function CompareWeekView({
           const isEmpty = planned.length === 0 && actual.length === 0
           const isToday = toDateKey(new Date()) === dateKey
 
+          const dayIllness = illnessEntries.filter((e) => e.start_date <= dateKey && e.end_date >= dateKey)
+
           return (
             <div
               key={dateKey}
-              className={`grid grid-cols-[100px_1fr_1fr] gap-4 border border-[#e5e5e5] rounded-lg p-3 ${isEmpty ? 'opacity-40' : ''}`}
+              className={`grid grid-cols-[100px_1fr_1fr] gap-4 border border-[#e5e5e5] rounded-lg p-3 ${isEmpty && dayIllness.length === 0 ? 'opacity-40' : ''}`}
             >
               {/* Day label */}
-              <div className="flex flex-col justify-center">
+              <div className="flex flex-col justify-center gap-1">
                 <span className={`text-xs font-medium ${isToday ? 'text-gray-900' : 'text-gray-500'}`}>
                   {WEEKDAYS[i]}
                 </span>
                 <span className="text-xs text-gray-400">
                   {day.getDate()} {day.toLocaleString('en-GB', { month: 'short' })}
                 </span>
+                {dayIllness.length > 0 && (
+                  <div className="flex gap-0.5 flex-wrap">
+                    {dayIllness.map((e) => (
+                      <span
+                        key={e.id}
+                        className="text-[9px] font-medium px-1 py-0.5 rounded text-white leading-none"
+                        style={{ backgroundColor: ILLNESS_COLORS[e.category] ?? '#888' }}
+                      >
+                        {e.category}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Planned column */}

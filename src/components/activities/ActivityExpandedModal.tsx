@@ -10,7 +10,9 @@ import { SportTagSelector } from './SportTagSelector'
 import { StrengthSubtypeSelector } from './StrengthSubtypeSelector'
 import { ContributionEditor } from './ContributionEditor'
 import { HideToggle } from './HideToggle'
-import { Activity, ActivityLap } from '@/lib/supabase/types'
+import { RPEInput } from './RPEInput'
+import { LactateInput } from './LactateInput'
+import { Activity, ActivityLap, LactateMeasurement } from '@/lib/supabase/types'
 import { ZoneRow } from '@/lib/analytics/hrZones'
 import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { effectiveSportKey, getActivityTitle } from '@/lib/activity'
@@ -20,6 +22,16 @@ interface ActivityExpandedModalProps {
   activityId: string
   onClose: () => void
   isCoach?: boolean
+  showRPE?: boolean
+  rpeScale?: 'rpe' | 'borg'
+  showLactate?: boolean
+}
+
+interface ZoneBoundaries {
+  zone1_max: number
+  zone2_max: number
+  zone3_max: number
+  zone4_max: number
 }
 
 interface ActivityDetail {
@@ -29,6 +41,8 @@ interface ActivityDetail {
   elevation: number[] | null
   hrData: number[] | null
   laps: ActivityLap[]
+  zoneBoundaries: ZoneBoundaries
+  lactate: LactateMeasurement[]
 }
 
 function getSportColor(activity: Activity, customTag?: string | null): string {
@@ -43,11 +57,17 @@ function formatDate(iso: string): string {
   }).format(new Date(iso))
 }
 
-export function ActivityExpandedModal({ activityId, onClose, isCoach = false }: ActivityExpandedModalProps) {
+export function ActivityExpandedModal({ activityId, onClose, isCoach = false, showRPE = false, rpeScale = 'rpe', showLactate = false }: ActivityExpandedModalProps) {
   const router = useRouter()
   const [detail, setDetail] = useState<ActivityDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Coach comment state
+  const [commentValue, setCommentValue] = useState('')
+  const [editingComment, setEditingComment] = useState(false)
+  const [savingComment, setSavingComment] = useState(false)
+  const [heartActive, setHeartActive] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -56,13 +76,45 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false }: 
       .then((r) => r.json())
       .then((data) => {
         setDetail(data)
+        setCommentValue(data.activity?.coach_comment ?? '')
+        setHeartActive(data.activity?.athlete_heart ?? false)
         setLoading(false)
+        // Mark read flags
+        if (!isCoach && data.activity?.coach_comment_unread) {
+          fetch(`/api/activity/${activityId}/mark-comment-read`, { method: 'PATCH' })
+        }
+        if (isCoach && data.activity?.athlete_heart_unread) {
+          fetch(`/api/activity/${activityId}/mark-heart-read`, { method: 'PATCH' })
+        }
       })
       .catch(() => {
         setError('Failed to load activity.')
         setLoading(false)
       })
-  }, [activityId])
+  }, [activityId, isCoach])
+
+  async function handleSaveComment() {
+    setSavingComment(true)
+    await fetch(`/api/activity/${activityId}/coach-comment`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coach_comment: commentValue }),
+    })
+    setSavingComment(false)
+    setEditingComment(false)
+    router.refresh()
+  }
+
+  async function handleToggleHeart() {
+    const next = !heartActive
+    setHeartActive(next)
+    await fetch(`/api/activity/${activityId}/athlete-heart`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ athlete_heart: next }),
+    })
+    router.refresh()
+  }
 
   function handleTagChanged(tag: string | null) {
     setDetail((prev) =>
@@ -134,8 +186,89 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false }: 
               activitySeconds={activitySeconds}
               showHRChart={true}
               elevationData={detail.elevation}
+              zoneBoundaries={detail.zoneBoundaries}
               showDangerControls={false}
             />
+
+            {/* RPE */}
+            {showRPE && detail.activity && (
+              <div className="border border-[#e5e5e5] rounded-lg p-5">
+                <RPEInput activityId={detail.activity.id} initialValue={detail.activity.rpe} scale={rpeScale} />
+              </div>
+            )}
+
+            {/* Lactate */}
+            {showLactate && (
+              <div className="border border-[#e5e5e5] rounded-lg p-5">
+                <LactateInput activityId={activityId} initialValues={detail.lactate ?? []} />
+              </div>
+            )}
+
+            {/* Coach comment */}
+            {isCoach ? (
+              <div className="border border-[#e5e5e5] rounded-lg p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Coach comment</h2>
+                  {heartActive && (
+                    <span className="text-base" title="Athlete liked this">
+                      ❤️{detail.activity?.athlete_heart_unread && <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-red-500 align-top mt-0.5" />}
+                    </span>
+                  )}
+                </div>
+                {editingComment ? (
+                  <div>
+                    <textarea
+                      autoFocus
+                      value={commentValue}
+                      onChange={(e) => setCommentValue(e.target.value)}
+                      rows={4}
+                      placeholder="Add a comment for the athlete…"
+                      className="w-full text-sm text-gray-800 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-gray-300"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={handleSaveComment}
+                        disabled={savingComment}
+                        className="flex-1 bg-gray-900 text-white text-xs font-medium py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                      >
+                        {savingComment ? 'Saving…' : 'Save comment'}
+                      </button>
+                      <button
+                        onClick={() => { setEditingComment(false); setCommentValue(detail.activity?.coach_comment ?? '') }}
+                        className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingComment(true)}
+                    className="w-full text-left px-3 py-2 rounded-lg border border-dashed border-gray-200 hover:border-gray-300 transition-colors"
+                  >
+                    {commentValue ? (
+                      <p className="text-sm text-gray-700">{commentValue}</p>
+                    ) : (
+                      <p className="text-sm text-gray-300">+ Add comment for athlete</p>
+                    )}
+                  </button>
+                )}
+              </div>
+            ) : detail.activity?.coach_comment ? (
+              <div className="border border-[#e5e5e5] rounded-lg p-5">
+                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Coach</h2>
+                <div className="bg-blue-50 rounded-lg px-3 py-2 flex items-start gap-2">
+                  <p className="text-sm text-blue-900 flex-1">{detail.activity.coach_comment}</p>
+                  <button
+                    onClick={handleToggleHeart}
+                    className="flex-shrink-0 text-base leading-none transition-transform hover:scale-110"
+                    aria-label={heartActive ? 'Remove heart' : 'Heart this comment'}
+                  >
+                    {heartActive ? '❤️' : '🤍'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             {/* Controls — intentionally at the bottom, require scrolling */}
             <div className="border-t border-gray-100 pt-4 space-y-3">

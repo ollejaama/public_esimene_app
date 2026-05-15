@@ -41,7 +41,7 @@ export default async function ComparePage({
 
   if (isCoach) actualQuery = actualQuery.eq('hidden', false) as typeof actualQuery
 
-  const [{ data: plannedActivities }, { data: actualActivities }] = await Promise.all([
+  const [{ data: plannedActivities }, { data: actualActivities }, { data: illnessData }] = await Promise.all([
     db
       .from('planned_activities')
       .select('*')
@@ -50,6 +50,9 @@ export default async function ComparePage({
       .lt('date', weekEndStr)
       .order('date', { ascending: true }),
     actualQuery,
+    db.from('illness_log').select('*').eq('user_id', session.userId)
+      .lte('start_date', weekEndStr)
+      .gte('end_date', weekStartStr),
   ])
 
   return (
@@ -61,6 +64,7 @@ export default async function ComparePage({
         week={week}
         year={year}
         isCoach={isCoach}
+        illnessEntries={illnessData ?? []}
       />
     </AppShell>
   )

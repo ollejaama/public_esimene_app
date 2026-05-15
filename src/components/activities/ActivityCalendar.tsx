@@ -2,19 +2,28 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity } from '@/lib/supabase/types'
+import { Activity, IllnessLog } from '@/lib/supabase/types'
 import { ActivityDayCell } from './ActivityDayCell'
-import { ActivityModal } from './ActivityModal'
+import { ActivityPreviewModal } from './ActivityPreviewModal'
+import { ActivityExpandedModal } from './ActivityExpandedModal'
 import { DayViewModal } from './DayViewModal'
 import { ManualActivityModal } from './ManualActivityModal'
 import { Modal } from '@/components/ui/Modal'
 import { getISOWeek } from '@/lib/analytics/weekSummary'
+
+interface UserSettings {
+  show_rpe: boolean
+  rpe_scale: 'rpe' | 'borg'
+  show_lactate: boolean
+}
 
 interface ActivityCalendarProps {
   activities: Activity[]
   initialMonth: Date
   restDayThresholdMinutes?: number
   isCoach?: boolean
+  illnessEntries?: IllnessLog[]
+  userSettings?: UserSettings
 }
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -51,23 +60,26 @@ function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-export function ActivityCalendar({ activities, initialMonth, restDayThresholdMinutes = 0, isCoach = false }: ActivityCalendarProps) {
+export function ActivityCalendar({ activities, initialMonth, restDayThresholdMinutes = 0, isCoach = false, illnessEntries = [], userSettings }: ActivityCalendarProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialMonth)
-  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
-  const [selectedDay, setSelectedDay] = useState<{ date: Date; activities: Activity[] } | null>(null)
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
+  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
+  const [selectedDay, setSelectedDay] = useState<{ date: Date; activities: Activity[]; dateKey: string } | null>(null)
   const [restDayPopup, setRestDayPopup] = useState<Date | null>(null)
   const [showManualModal, setShowManualModal] = useState(false)
 
   function handleDayActivityClick(activity: Activity) {
     setSelectedDay(null)
-    setSelectedActivityId(activity.id)
+    setSelectedActivity(activity)
   }
 
   function handleDayClick(day: Date) {
-    const dayActivities = activityMap.get(toDateKey(day)) ?? []
-    if (dayActivities.length > 0) {
-      setSelectedDay({ date: day, activities: dayActivities })
+    const dateKey = toDateKey(day)
+    const dayActivities = activityMap.get(dateKey) ?? []
+    const dayIllness = illnessEntries.filter((e) => e.start_date <= dateKey && e.end_date >= dateKey)
+    if (dayActivities.length > 0 || dayIllness.length > 0) {
+      setSelectedDay({ date: day, activities: dayActivities, dateKey })
       return
     }
     const todayEnd = new Date()
@@ -139,25 +151,50 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
 
         {/* Calendar grid */}
         <div className="grid grid-cols-7">
-          {days.map((day) => (
-            <ActivityDayCell
-              key={day.toISOString()}
-              date={day}
-              activities={activityMap.get(toDateKey(day)) ?? []}
-              isCurrentMonth={day.getMonth() === month.getMonth()}
-              onActivityClick={setSelectedActivityId}
-              onDayClick={() => handleDayClick(day)}
-              restDayThresholdMinutes={restDayThresholdMinutes}
-            />
-          ))}
+          {days.map((day) => {
+            const dateKey = toDateKey(day)
+            const dayIllness = illnessEntries.filter((e) => e.start_date <= dateKey && e.end_date >= dateKey)
+            return (
+              <ActivityDayCell
+                key={day.toISOString()}
+                date={day}
+                activities={activityMap.get(dateKey) ?? []}
+                isCurrentMonth={day.getMonth() === month.getMonth()}
+                onActivityClick={handleDayActivityClick}
+                onDayClick={() => handleDayClick(day)}
+                restDayThresholdMinutes={restDayThresholdMinutes}
+                illnessEntries={dayIllness}
+              />
+            )
+          })}
         </div>
       </div>
 
-      <ActivityModal
-        activityId={selectedActivityId}
-        onClose={() => setSelectedActivityId(null)}
-        isCoach={isCoach}
-      />
+      {selectedActivity && !expandedActivityId && (
+        <ActivityPreviewModal
+          activity={selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+          onExpand={() => {
+            setExpandedActivityId(selectedActivity.id)
+            setSelectedActivity(null)
+          }}
+          isCoach={isCoach}
+          showRPE={userSettings?.show_rpe ?? false}
+          rpeScale={userSettings?.rpe_scale ?? 'rpe'}
+          showLactate={userSettings?.show_lactate ?? false}
+        />
+      )}
+
+      {expandedActivityId && (
+        <ActivityExpandedModal
+          activityId={expandedActivityId}
+          onClose={() => setExpandedActivityId(null)}
+          isCoach={isCoach}
+          showRPE={userSettings?.show_rpe ?? false}
+          rpeScale={userSettings?.rpe_scale ?? 'rpe'}
+          showLactate={userSettings?.show_lactate ?? false}
+        />
+      )}
 
       {selectedDay && (
         <DayViewModal
@@ -165,6 +202,9 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
           activities={selectedDay.activities}
           onActivityClick={handleDayActivityClick}
           onClose={() => setSelectedDay(null)}
+          illnessEntries={illnessEntries.filter((e) => e.start_date <= selectedDay.dateKey && e.end_date >= selectedDay.dateKey)}
+          defaultDate={selectedDay.dateKey}
+          isCoach={isCoach}
         />
       )}
 

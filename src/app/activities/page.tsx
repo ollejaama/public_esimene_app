@@ -32,9 +32,16 @@ export default async function ActivitiesPage() {
   // Coach never sees hidden activities
   if (isCoach) query = query.eq('hidden', false) as typeof query
 
-  const [{ data: activities }, { data: zoneData }] = await Promise.all([
+  const startDate = start.toISOString().slice(0, 10)
+  const endDate = end.toISOString().slice(0, 10)
+
+  const [{ data: activities }, { data: zoneData }, { data: userSettingsData }, { data: illnessData }] = await Promise.all([
     query,
     db.from('hr_zone_settings').select('rest_day_threshold_minutes').eq('user_id', session.userId).maybeSingle(),
+    db.from('user_settings').select('*').eq('user_id', session.userId).maybeSingle(),
+    db.from('illness_log').select('*').eq('user_id', session.userId)
+      .lte('start_date', endDate)
+      .gte('end_date', startDate),
   ])
 
   const restDayThresholdMinutes = zoneData?.rest_day_threshold_minutes ?? 0
@@ -50,6 +57,12 @@ export default async function ActivitiesPage() {
         initialMonth={new Date(now.getFullYear(), now.getMonth(), 1)}
         restDayThresholdMinutes={restDayThresholdMinutes}
         isCoach={isCoach}
+        illnessEntries={illnessData ?? []}
+        userSettings={{
+          show_rpe: userSettingsData?.show_rpe ?? false,
+          rpe_scale: (userSettingsData?.rpe_scale as 'rpe' | 'borg') ?? 'rpe',
+          show_lactate: userSettingsData?.show_lactate ?? false,
+        }}
       />
     </AppShell>
   )

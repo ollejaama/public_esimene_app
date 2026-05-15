@@ -4,18 +4,20 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 
 interface ElevationChartProps {
   elevationData: number[]
+  totalSeconds: number
   highlightIndex?: number
 }
 
-function downsample(data: number[], maxPoints: number): { t: number; elev: number }[] {
+function downsample(data: number[], maxPoints: number, totalSeconds: number): { t: number; elev: number }[] {
+  const scale = data.length > 0 ? totalSeconds / data.length : 1
   if (data.length <= maxPoints) {
-    return data.map((elev, i) => ({ t: i, elev }))
+    return data.map((elev, i) => ({ t: Math.round(i * scale), elev }))
   }
   const step = data.length / maxPoints
   const result: { t: number; elev: number }[] = []
   for (let i = 0; i < maxPoints; i++) {
     const idx = Math.round(i * step)
-    result.push({ t: idx, elev: data[idx] })
+    result.push({ t: Math.round(idx * scale), elev: data[idx] })
   }
   return result
 }
@@ -27,8 +29,8 @@ function formatTime(seconds: number): string {
   return `${m}m`
 }
 
-export function ElevationChart({ elevationData, highlightIndex }: ElevationChartProps) {
-  const points = downsample(elevationData, 600)
+export function ElevationChart({ elevationData, totalSeconds, highlightIndex }: ElevationChartProps) {
+  const points = downsample(elevationData, 600, totalSeconds)
 
   return (
     <ResponsiveContainer width="100%" height={200}>

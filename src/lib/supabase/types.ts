@@ -36,6 +36,15 @@ export interface Activity {
   contribution_hours: number | null
   is_manual: boolean
   created_at: string
+  // Batch 3 fields
+  rpe: number | null
+  coach_comment: string | null
+  coach_comment_at: string | null
+  coach_comment_unread: boolean
+  athlete_heart: boolean
+  athlete_heart_at: string | null
+  athlete_heart_unread: boolean
+  decoupling_percent: number | null
 }
 
 export interface ActivityHRStream {
@@ -93,6 +102,34 @@ export interface PlannedActivity {
   intensity_type: 'regular' | 'interval' | 'speed' | 'competition'
   created_at: string
   updated_at: string
+}
+
+export interface UserSettings {
+  id: string
+  user_id: string
+  show_rpe: boolean
+  rpe_scale: 'rpe' | 'borg'
+  show_lactate: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface IllnessLog {
+  id: string
+  user_id: string
+  category: 'sick' | 'injured' | 'fatigue'
+  start_date: string  // 'YYYY-MM-DD'
+  end_date: string    // 'YYYY-MM-DD'
+  notes: string | null
+  created_at: string
+}
+
+export interface LactateMeasurement {
+  id: string
+  activity_id: string
+  user_id: string
+  value_mmol: number
+  created_at: string
 }
 
 export interface SessionPayload {

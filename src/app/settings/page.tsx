@@ -1,6 +1,7 @@
 import { AppShell } from '@/components/layout/AppShell'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { HRZoneForm } from '@/components/settings/HRZoneForm'
+import { UserSettingsForm } from '@/components/settings/UserSettingsForm'
 import { StravaSyncSection } from '@/components/settings/StravaSyncSection'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -28,9 +29,10 @@ export default async function SettingsPage() {
 
   const db = createServiceClient()
 
-  const [{ data: zoneData }, { data: profileData }] = await Promise.all([
+  const [{ data: zoneData }, { data: profileData }, { data: userSettingsData }] = await Promise.all([
     db.from('hr_zone_settings').select('*').eq('user_id', session.userId).maybeSingle(),
     db.from('profiles').select('last_synced_at').eq('user_id', session.userId).single(),
+    db.from('user_settings').select('*').eq('user_id', session.userId).maybeSingle(),
   ])
 
   const zones = zoneData
@@ -56,6 +58,15 @@ export default async function SettingsPage() {
         <Card className="p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">HR Zone Configuration</h2>
           <HRZoneForm initialZones={zones} />
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Features</h2>
+          <UserSettingsForm initial={{
+            show_rpe: userSettingsData?.show_rpe ?? false,
+            rpe_scale: (userSettingsData?.rpe_scale as 'rpe' | 'borg') ?? 'rpe',
+            show_lactate: userSettingsData?.show_lactate ?? false,
+          }} />
         </Card>
 
         <Card className="p-6">

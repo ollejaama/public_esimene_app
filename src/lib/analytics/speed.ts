@@ -10,16 +10,18 @@ function haversineMeters(a: [number, number], b: [number, number]): number {
 }
 
 /**
- * Compute per-second speed in km/h from a GPS track sampled at 1 Hz.
+ * Compute speed in km/h from a GPS track.
+ * secondsPerSample is the real elapsed time between consecutive GPS points
+ * (activitySeconds / latlng.length). Defaults to 1 for 1 Hz tracks.
  * Uses a 7-point centered rolling average to smooth GPS noise.
  */
-export function computeSpeedKmh(latlng: [number, number][]): number[] {
+export function computeSpeedKmh(latlng: [number, number][], secondsPerSample = 1): number[] {
   if (latlng.length < 2) return latlng.map(() => 0)
 
-  // Instantaneous speed: distance between consecutive points (meters) = m/s at 1 Hz
+  // distance (m) / secondsPerSample → m/s, × 3.6 → km/h
   const raw: number[] = [0]
   for (let i = 1; i < latlng.length; i++) {
-    raw.push(haversineMeters(latlng[i - 1], latlng[i]) * 3.6) // m/s → km/h
+    raw.push((haversineMeters(latlng[i - 1], latlng[i]) / secondsPerSample) * 3.6)
   }
 
   // 7-point centered rolling average

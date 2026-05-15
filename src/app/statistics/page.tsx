@@ -1,13 +1,17 @@
 import { AppShell } from '@/components/layout/AppShell'
 import { SyncRefresher } from '@/components/sync/SyncRefresher'
 import { TimeRangeSelector, TimeRange } from '@/components/statistics/TimeRangeSelector'
-import { ZoneProgressionChart } from '@/components/statistics/ZoneProgressionChart'
+import { VolumeByZoneChart } from '@/components/statistics/VolumeByZoneChart'
 import { SeasonalVolumeWidget } from '@/components/statistics/SeasonalVolumeWidget'
 import { MonthlyVolumeWidget } from '@/components/statistics/MonthlyVolumeWidget'
 import { HRZoneDonutChart } from '@/components/statistics/HRZoneDonutChart'
 import { SportBreakdownTable } from '@/components/statistics/SportBreakdownTable'
 import { IntensityBreakdown } from '@/components/statistics/IntensityBreakdown'
 import { RestDaysWidget } from '@/components/statistics/RestDaysWidget'
+import { RPEWidget } from '@/components/statistics/RPEWidget'
+import { IllnessWidget } from '@/components/statistics/IllnessWidget'
+import { DecouplingChart } from '@/components/statistics/DecouplingChart'
+import { LactateChart } from '@/components/statistics/LactateChart'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { HRZoneSettings } from '@/lib/supabase/types'
@@ -86,7 +90,10 @@ export default async function StatisticsPage({
 
   const db = createServiceClient()
 
-  const [{ data: rangeActivities }, { data: zoneData }] = await Promise.all([
+  const startDateStr = start.toISOString().slice(0, 10)
+  const endDateStr = end.toISOString().slice(0, 10)
+
+  const [{ data: rangeActivities }, { data: zoneData }, { data: userSettingsData }, { data: illnessData }] = await Promise.all([
     db.from('activities')
       .select('*')
       .eq('user_id', session.userId)
@@ -95,6 +102,10 @@ export default async function StatisticsPage({
       .lt('start_date', end.toISOString())
       .order('start_date', { ascending: true }),
     db.from('hr_zone_settings').select('*').eq('user_id', session.userId).maybeSingle(),
+    db.from('user_settings').select('*').eq('user_id', session.userId).maybeSingle(),
+    db.from('illness_log').select('*').eq('user_id', session.userId)
+      .lte('start_date', endDateStr)
+      .gte('end_date', startDateStr),
   ])
 
   const zones: HRZoneSettings = zoneData ?? DEFAULT_ZONES
@@ -149,6 +160,32 @@ export default async function StatisticsPage({
     zones.rest_day_threshold_minutes === 0 ? v === 0 : v < thresholdSeconds
   ).length
 
+  // Lactate daily averages (season view only)
+  let lactateData: { date: string; avg_mmol: number }[] = []
+  if (range === 'season' && userSettingsData?.show_lactate) {
+    const activityIds = (rangeActivities ?? []).map((a) => a.id)
+    if (activityIds.length > 0) {
+      const { data: lactateRows } = await db
+        .from('lactate_measurements')
+        .select('value_mmol, activity_id, activities!inner(start_date)')
+        .in('activity_id', activityIds)
+        .eq('user_id', session.userId)
+      if (lactateRows && lactateRows.length > 0) {
+        const byDate = new Map<string, number[]>()
+        for (const row of lactateRows) {
+          const dateKey = (row as any).activities?.start_date?.slice(0, 10)
+          if (!dateKey) continue
+          const arr = byDate.get(dateKey) ?? []
+          arr.push(row.value_mmol)
+          byDate.set(dateKey, arr)
+        }
+        lactateData = Array.from(byDate.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, vals]) => ({ date, avg_mmol: vals.reduce((s, v) => s + v, 0) / vals.length }))
+      }
+    }
+  }
+
   // Season-only: previous season total for comparison
   let prevSeasonHours: number | null = null
   if (range === 'season') {
@@ -181,9 +218,9 @@ export default async function StatisticsPage({
           <div className="flex items-start gap-6">
             <div className="flex-1 min-w-0">
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                Zone Distribution Over Time
+                Training Volume
               </h2>
-              <ZoneProgressionChart data={zoneProgressionData} zoneNames={zoneNames} />
+              <VolumeByZoneChart data={zoneProgressionData} zoneNames={zoneNames} range={range} />
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-4xl font-bold text-gray-900 leading-none">{totalHoursLabel}</p>
@@ -238,7 +275,7 @@ export default async function StatisticsPage({
           </div>
         </div>
 
-        {/* Intensity breakdown + Rest days */}
+        {/* Intensity breakdown + Rest days + Illness + RPE */}
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-2 border border-[#e5e5e5] rounded-lg p-5">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
@@ -246,16 +283,69 @@ export default async function StatisticsPage({
             </h2>
             <IntensityBreakdown activities={rangeActivities ?? []} />
           </div>
-          <div className="border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Rest Days
-            </h2>
-            <RestDaysWidget
-              restDayCount={restDayCount}
-              thresholdMinutes={zones.rest_day_threshold_minutes}
-            />
+          <div className="space-y-4">
+            <div className="border border-[#e5e5e5] rounded-lg p-5">
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                Rest Days
+              </h2>
+              <RestDaysWidget
+                restDayCount={restDayCount}
+                thresholdMinutes={zones.rest_day_threshold_minutes}
+              />
+            </div>
+            <div className="border border-[#e5e5e5] rounded-lg p-5">
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                Health
+              </h2>
+              <IllnessWidget
+                illnessEntries={illnessData ?? []}
+                start={start}
+                end={end}
+              />
+            </div>
           </div>
         </div>
+
+        {/* RPE — when enabled */}
+        {userSettingsData?.show_rpe && (
+          <div className="border border-[#e5e5e5] rounded-lg p-5">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              Effort Rating
+            </h2>
+            <RPEWidget
+              activities={rangeActivities ?? []}
+              scale={(userSettingsData.rpe_scale as 'rpe' | 'borg') ?? 'rpe'}
+            />
+          </div>
+        )}
+
+        {/* Aerobic Decoupling */}
+        {(rangeActivities ?? []).some((a) => a.decoupling_percent != null) && (
+          <div className="border border-[#e5e5e5] rounded-lg p-5">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              Aerobic Decoupling
+            </h2>
+            <p className="text-[10px] text-gray-400 mb-3">
+              Dashed lines: 5% (yellow) and 8% (red) thresholds
+            </p>
+            <DecouplingChart
+              activities={rangeActivities ?? []}
+              range={range}
+              start={start}
+              end={end}
+            />
+          </div>
+        )}
+
+        {/* Lactate — season view only, when enabled */}
+        {range === 'season' && userSettingsData?.show_lactate && (
+          <div className="border border-[#e5e5e5] rounded-lg p-5">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              Lactate
+            </h2>
+            <LactateChart data={lactateData} />
+          </div>
+        )}
       </div>
     </AppShell>
   )

@@ -2,18 +2,28 @@
 
 import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
-import { Activity } from '@/lib/supabase/types'
+import { Activity, IllnessLog } from '@/lib/supabase/types'
 import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { effectiveDuration, effectiveSportKey, getActivityTitle } from '@/lib/activity'
 import { formatDuration } from '@/lib/analytics/hrZones'
 import { SportIcon } from '@/components/ui/SportIcon'
 import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
+import { IllnessLogModal } from './IllnessLogModal'
+
+const ILLNESS_LABELS: Record<string, { label: string; color: string }> = {
+  sick: { label: 'Sick', color: '#ef4444' },
+  injured: { label: 'Injured', color: '#fb923c' },
+  fatigue: { label: 'Fatigue', color: '#facc15' },
+}
 
 interface DayViewModalProps {
   date: Date
   activities: Activity[]
   onActivityClick: (activity: Activity) => void
   onClose: () => void
+  illnessEntries?: IllnessLog[]
+  defaultDate?: string
+  isCoach?: boolean
 }
 
 function getSportColor(activity: Activity): string {
@@ -21,7 +31,7 @@ function getSportColor(activity: Activity): string {
   return SPORT_COLORS[CUSTOM_TAG_COLOR_KEY[key] ?? key] ?? SPORT_COLORS.Other
 }
 
-export function DayViewModal({ date, activities, onActivityClick, onClose }: DayViewModalProps) {
+export function DayViewModal({ date, activities, onActivityClick, onClose, illnessEntries = [], defaultDate, isCoach = false }: DayViewModalProps) {
   const dateLabel = date.toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
@@ -31,6 +41,10 @@ export function DayViewModal({ date, activities, onActivityClick, onClose }: Day
     Object.fromEntries(activities.map((a) => [a.id, a.notes ?? '']))
   )
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [showIllnessModal, setShowIllnessModal] = useState(false)
+  const [editingIllness, setEditingIllness] = useState<IllnessLog | undefined>(undefined)
+
+  const dayKey = defaultDate ?? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
   async function handleNoteBlur(activityId: string) {
     const current = noteValues[activityId] ?? ''
@@ -112,34 +126,79 @@ export function DayViewModal({ date, activities, onActivityClick, onClose }: Day
   }
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-sm" align="center">
-      <div className="p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-5 pr-6">{dateLabel}</h2>
+    <>
+      <Modal open onClose={onClose} maxWidth="max-w-sm" align="center">
+        <div className="p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-5 pr-6">{dateLabel}</h2>
 
-        <div className="space-y-4">
-          {morning.length > 0 && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1 px-1">
-                ☀ Morning
-              </p>
-              <div className="space-y-0.5">
-                {morning.map((a) => <ActivityRow key={a.id} activity={a} />)}
+          <div className="space-y-4">
+            {morning.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1 px-1">
+                  ☀ Morning
+                </p>
+                <div className="space-y-0.5">
+                  {morning.map((a) => <ActivityRow key={a.id} activity={a} />)}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {evening.length > 0 && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1 px-1">
-                ☽ Evening
-              </p>
-              <div className="space-y-0.5">
-                {evening.map((a) => <ActivityRow key={a.id} activity={a} />)}
+            {evening.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1 px-1">
+                  ☽ Evening
+                </p>
+                <div className="space-y-0.5">
+                  {evening.map((a) => <ActivityRow key={a.id} activity={a} />)}
+                </div>
               </div>
+            )}
+
+            {/* Illness entries */}
+            {illnessEntries.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 px-1">Health</p>
+                <div className="flex flex-wrap gap-1.5 px-1">
+                  {illnessEntries.map((entry) => {
+                    const meta = ILLNESS_LABELS[entry.category]
+                    return (
+                      <button
+                        key={entry.id}
+                        onClick={() => { setEditingIllness(entry); setShowIllnessModal(true) }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                        style={{ backgroundColor: meta?.color ?? '#888' }}
+                      >
+                        {meta?.label ?? entry.category}
+                        <span className="opacity-70">·</span>
+                        <span className="opacity-80">{entry.start_date === entry.end_date ? entry.start_date : `${entry.start_date} – ${entry.end_date}`}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {!isCoach && (
+            <div className="mt-5 pt-4 border-t border-gray-100">
+              <button
+                onClick={() => { setEditingIllness(undefined); setShowIllnessModal(true) }}
+                className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+              >
+                + Log illness / injury
+              </button>
             </div>
           )}
         </div>
-      </div>
-    </Modal>
+      </Modal>
+
+      {showIllnessModal && (
+        <IllnessLogModal
+          defaultDate={dayKey}
+          existing={editingIllness}
+          onClose={() => { setShowIllnessModal(false); setEditingIllness(undefined) }}
+        />
+      )}
+    </>
   )
 }

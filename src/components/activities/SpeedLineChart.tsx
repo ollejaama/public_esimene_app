@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 interface SpeedLineChartProps {
   speedData: number[]   // km/h values, one per second
   isRunning: boolean    // true → display as min/km pace, false → km/h
+  totalSeconds: number
   highlightIndex?: number
 }
 
@@ -18,15 +19,16 @@ function rollingAverage(data: number[], window: number): number[] {
   })
 }
 
-function downsample(data: number[], maxPoints: number): { t: number; v: number }[] {
+function downsample(data: number[], maxPoints: number, totalSeconds: number): { t: number; v: number }[] {
+  const scale = data.length > 0 ? totalSeconds / data.length : 1
   if (data.length <= maxPoints) {
-    return data.map((v, i) => ({ t: i, v }))
+    return data.map((v, i) => ({ t: Math.round(i * scale), v }))
   }
   const step = data.length / maxPoints
   const result: { t: number; v: number }[] = []
   for (let i = 0; i < maxPoints; i++) {
     const idx = Math.round(i * step)
-    result.push({ t: idx, v: data[idx] })
+    result.push({ t: Math.round(idx * scale), v: data[idx] })
   }
   return result
 }
@@ -44,9 +46,9 @@ function formatPaceValue(minPerKm: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-export function SpeedLineChart({ speedData, isRunning, highlightIndex }: SpeedLineChartProps) {
+export function SpeedLineChart({ speedData, isRunning, totalSeconds, highlightIndex }: SpeedLineChartProps) {
   const smoothed = rollingAverage(speedData, 25)
-  const rawPoints = downsample(smoothed, 600)
+  const rawPoints = downsample(smoothed, 600, totalSeconds)
 
   // For running, convert km/h to min/km (pace). Clamp absurd values (e.g. GPS jumps).
   const points = isRunning
@@ -56,7 +58,15 @@ export function SpeedLineChart({ speedData, isRunning, highlightIndex }: SpeedLi
       }))
     : rawPoints
 
-  const yDomain: [number | string, number | string] = isRunning ? ['auto', 'auto'] : [0, 'auto']
+  // For km/h: use 99th-percentile to exclude GPS spike outliers from y-axis scaling
+  let yDomain: [number | string, number | string]
+  if (isRunning) {
+    yDomain = ['auto', 'auto']
+  } else {
+    const vals = rawPoints.map(p => p.v).sort((a, b) => a - b)
+    const p99 = vals[Math.floor(vals.length * 0.99)] ?? vals[vals.length - 1] ?? 1
+    yDomain = [0, Math.ceil(p99 * 1.1)]
+  }
 
   // Y-axis tick formatter
   const tickFormatter = isRunning

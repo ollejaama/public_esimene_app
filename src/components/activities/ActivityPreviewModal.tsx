@@ -1,20 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
-import { Activity } from '@/lib/supabase/types'
+import { Activity, LactateMeasurement } from '@/lib/supabase/types'
 import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { effectiveDuration, effectiveSportKey, getActivityTitle } from '@/lib/activity'
 import { formatDuration } from '@/lib/analytics/hrZones'
 import { SportIcon } from '@/components/ui/SportIcon'
 import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 import { StrengthSubtypeSelector } from './StrengthSubtypeSelector'
+import { RPEInput } from './RPEInput'
+import { LactateInput } from './LactateInput'
 
 interface ActivityPreviewModalProps {
   activity: Activity
   onClose: () => void
   onExpand: () => void
+  isCoach?: boolean
+  showRPE?: boolean
+  rpeScale?: 'rpe' | 'borg'
+  showLactate?: boolean
 }
 
 function getSportColor(activity: Activity, customTag?: string | null): string {
@@ -29,7 +35,7 @@ function formatDate(iso: string): string {
   }).format(new Date(iso))
 }
 
-export function ActivityPreviewModal({ activity, onClose, onExpand }: ActivityPreviewModalProps) {
+export function ActivityPreviewModal({ activity, onClose, onExpand, isCoach = false, showRPE = false, rpeScale = 'rpe', showLactate = false }: ActivityPreviewModalProps) {
   const router = useRouter()
   const [noteValue, setNoteValue] = useState(activity.notes ?? '')
   const [editingNote, setEditingNote] = useState(false)
@@ -37,6 +43,57 @@ export function ActivityPreviewModal({ activity, onClose, onExpand }: ActivityPr
   const [hidden, setHidden] = useState(activity.hidden)
   const [savingHidden, setSavingHidden] = useState(false)
   const [customTag, setCustomTag] = useState<string | null>(activity.custom_sport_tag)
+
+  // Coach comment state
+  const [commentValue, setCommentValue] = useState(activity.coach_comment ?? '')
+  const [editingComment, setEditingComment] = useState(false)
+  const [savingComment, setSavingComment] = useState(false)
+  const [heartActive, setHeartActive] = useState(activity.athlete_heart)
+
+  // Lactate state (fetched lazily when showLactate is on)
+  const [lactate, setLactate] = useState<LactateMeasurement[] | null>(null)
+
+  useEffect(() => {
+    // Mark comment as read when athlete opens activity with unread comment
+    if (!isCoach && activity.coach_comment_unread) {
+      fetch(`/api/activity/${activity.id}/mark-comment-read`, { method: 'PATCH' })
+    }
+    // Mark heart as read when coach opens activity with unread heart
+    if (isCoach && activity.athlete_heart_unread) {
+      fetch(`/api/activity/${activity.id}/mark-heart-read`, { method: 'PATCH' })
+    }
+  }, [activity.id, isCoach, activity.coach_comment_unread, activity.athlete_heart_unread])
+
+  useEffect(() => {
+    if (showLactate && lactate === null) {
+      fetch(`/api/activity/${activity.id}/lactate`)
+        .then(r => r.json())
+        .then(setLactate)
+    }
+  }, [showLactate, activity.id, lactate])
+
+  async function handleSaveComment() {
+    setSavingComment(true)
+    await fetch(`/api/activity/${activity.id}/coach-comment`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coach_comment: commentValue }),
+    })
+    setSavingComment(false)
+    setEditingComment(false)
+    router.refresh()
+  }
+
+  async function handleToggleHeart() {
+    const next = !heartActive
+    setHeartActive(next)
+    await fetch(`/api/activity/${activity.id}/athlete-heart`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ athlete_heart: next }),
+    })
+    router.refresh()
+  }
 
   const color = getSportColor(activity, customTag)
   const isStrength = effectiveSportKey(activity) === 'Strength' || effectiveSportKey(activity) === 'strength_basic'
@@ -167,6 +224,84 @@ export function ActivityPreviewModal({ activity, onClose, onExpand }: ActivityPr
             </button>
           )}
         </div>
+
+        {/* RPE */}
+        {showRPE && (
+          <RPEInput activityId={activity.id} initialValue={activity.rpe} scale={rpeScale} />
+        )}
+
+        {/* Coach comment */}
+        {isCoach ? (
+          <div>
+            <div className="flex items-center justify-between mb-1.5 px-1">
+              <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Coach comment</p>
+              {heartActive && (
+                <span className="text-sm" title="Athlete liked this">
+                  ❤️{activity.athlete_heart_unread && <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-red-500 align-top mt-0.5" />}
+                </span>
+              )}
+            </div>
+            {editingComment ? (
+              <div>
+                <textarea
+                  autoFocus
+                  value={commentValue}
+                  onChange={(e) => setCommentValue(e.target.value)}
+                  rows={3}
+                  placeholder="Add a comment for the athlete…"
+                  className="w-full text-sm text-gray-800 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-gray-300"
+                />
+                <div className="flex gap-2 mt-1.5">
+                  <button
+                    onClick={handleSaveComment}
+                    disabled={savingComment}
+                    className="flex-1 bg-gray-900 text-white text-xs font-medium py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                  >
+                    {savingComment ? 'Saving…' : 'Save comment'}
+                  </button>
+                  <button
+                    onClick={() => { setEditingComment(false); setCommentValue(activity.coach_comment ?? '') }}
+                    className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEditingComment(true)}
+                className="w-full text-left px-3 py-2 rounded-lg border border-dashed border-gray-200 hover:border-gray-300 transition-colors"
+              >
+                {commentValue ? (
+                  <p className="text-sm text-gray-700">{commentValue}</p>
+                ) : (
+                  <p className="text-sm text-gray-300">+ Add comment for athlete</p>
+                )}
+              </button>
+            )}
+          </div>
+        ) : activity.coach_comment ? (
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1.5 px-1">Coach</p>
+            <div className="bg-blue-50 rounded-lg px-3 py-2 flex items-start gap-2">
+              <p className="text-sm text-blue-900 flex-1">{activity.coach_comment}</p>
+              <button
+                onClick={handleToggleHeart}
+                className="flex-shrink-0 text-base leading-none transition-transform hover:scale-110"
+                aria-label={heartActive ? 'Remove heart' : 'Heart this comment'}
+              >
+                {heartActive ? '❤️' : '🤍'}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Lactate */}
+        {showLactate && (
+          lactate !== null
+            ? <LactateInput activityId={activity.id} initialValues={lactate} />
+            : <p className="text-xs text-gray-300 px-1">Loading lactate…</p>
+        )}
 
         {/* Footer actions */}
         <div className="flex items-center justify-between pt-1 gap-2">

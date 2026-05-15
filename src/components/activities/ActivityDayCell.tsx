@@ -1,20 +1,27 @@
 'use client'
 
 import { useState } from 'react'
-import { Activity } from '@/lib/supabase/types'
+import { Activity, IllnessLog } from '@/lib/supabase/types'
 import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { formatDuration } from '@/lib/analytics/hrZones'
 import { effectiveContributionSeconds, effectiveSportKey } from '@/lib/activity'
 import { SportIcon } from '@/components/ui/SportIcon'
 import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 
+const ILLNESS_COLORS: Record<string, string> = {
+  sick: '#ef4444',
+  injured: '#fb923c',
+  fatigue: '#facc15',
+}
+
 interface ActivityDayCellProps {
   date: Date
   activities: Activity[]
   isCurrentMonth: boolean
-  onActivityClick: (id: string) => void
+  onActivityClick: (activity: Activity) => void
   onDayClick?: () => void
   restDayThresholdMinutes?: number
+  illnessEntries?: IllnessLog[]
 }
 
 function getSportColor(activity: Activity): string {
@@ -22,7 +29,7 @@ function getSportColor(activity: Activity): string {
   return SPORT_COLORS[CUSTOM_TAG_COLOR_KEY[key] ?? key] ?? SPORT_COLORS.Other
 }
 
-export function ActivityDayCell({ date, activities, isCurrentMonth, onActivityClick, onDayClick, restDayThresholdMinutes = 0 }: ActivityDayCellProps) {
+export function ActivityDayCell({ date, activities, isCurrentMonth, onActivityClick, onDayClick, restDayThresholdMinutes = 0, illnessEntries = [] }: ActivityDayCellProps) {
   const isToday = new Date().toDateString() === date.toDateString()
   const [expanded, setExpanded] = useState(false)
 
@@ -40,6 +47,11 @@ export function ActivityDayCell({ date, activities, isCurrentMonth, onActivityCl
   const isRestDay = isCurrentMonth && isPastOrToday && (
     restDayThresholdMinutes === 0 ? dayTotalSeconds === 0 : dayTotalSeconds < restDayThresholdMinutes * 60
   )
+
+  // Find illness entries that overlap this day
+  const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const dayIllness = illnessEntries.filter((e) => e.start_date <= dayKey && e.end_date >= dayKey)
+  const illnessColors = Array.from(new Set(dayIllness.map((e) => ILLNESS_COLORS[e.category]).filter(Boolean)))
 
   return (
     <div
@@ -61,13 +73,16 @@ export function ActivityDayCell({ date, activities, isCurrentMonth, onActivityCl
         {isRestDay && (
           <span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" title="Rest day" />
         )}
+        {illnessColors.map((color, i) => (
+          <span key={i} className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+        ))}
       </div>
 
       <div className="mt-1 space-y-0.5">
         {visibleActivities.map((activity) => (
           <button
             key={activity.id}
-            onClick={(e) => { e.stopPropagation(); onActivityClick(activity.id) }}
+            onClick={(e) => { e.stopPropagation(); onActivityClick(activity) }}
             className={`w-full text-left ${activity.hidden ? 'opacity-40 grayscale' : ''}`}
           >
             <span
@@ -95,6 +110,16 @@ export function ActivityDayCell({ date, activities, isCurrentMonth, onActivityCl
               )}
               {activity.contribution_hours != null && !activity.hidden && (
                 <span className="text-[9px] font-bold px-0.5 rounded bg-amber-50 text-amber-600 flex-shrink-0 leading-none">P</span>
+              )}
+              {activity.coach_comment && !activity.hidden && (
+                <span className="relative flex-shrink-0" title="Coach comment">
+                  <svg className="w-2.5 h-2.5 opacity-60" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                  </svg>
+                  {activity.coach_comment_unread && (
+                    <span className="absolute -top-0.5 -right-0.5 w-1 h-1 rounded-full bg-red-500" />
+                  )}
+                </span>
               )}
             </span>
           </button>
