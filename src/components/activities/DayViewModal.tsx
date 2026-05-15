@@ -7,6 +7,7 @@ import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { effectiveDuration, effectiveSportKey, getActivityTitle } from '@/lib/activity'
 import { formatDuration } from '@/lib/analytics/hrZones'
 import { SportIcon } from '@/components/ui/SportIcon'
+import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 
 interface DayViewModalProps {
   date: Date
@@ -67,14 +68,8 @@ export function DayViewModal({ date, activities, onActivityClick, onClose }: Day
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <p className="text-sm font-medium text-gray-900 truncate">{getActivityTitle(activity)}</p>
-              {activity.intensity_type === 'interval' && (
-                <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-red-100 text-red-600 leading-none flex-shrink-0">INT</span>
-              )}
-              {activity.intensity_type === 'speed' && (
-                <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-600 leading-none flex-shrink-0">SPD</span>
-              )}
-              {activity.intensity_type === 'competition' && (
-                <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-700 leading-none flex-shrink-0">★ COMP</span>
+              {(activity.intensity_type === 'interval' || activity.intensity_type === 'speed' || activity.intensity_type === 'competition') && (
+                <ActivityTypeBadge intensityType={activity.intensity_type} />
               )}
             </div>
             <p className="text-xs text-gray-400">{formatDuration(effectiveDuration(activity))}</p>

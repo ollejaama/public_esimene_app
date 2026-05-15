@@ -2,6 +2,7 @@
 
 import { Modal } from '@/components/ui/Modal'
 import { PlannedActivity } from '@/lib/supabase/types'
+import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 
 interface PlannedActivityPreviewModalProps {
   activity: PlannedActivity
@@ -31,14 +32,8 @@ export function PlannedActivityPreviewModal({ activity, onClose }: PlannedActivi
             }`}>
               {activity.time_of_day === 'evening' ? '☽ Evening' : '☀ Morning'}
             </span>
-            {activity.intensity_type === 'interval' && (
-              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-red-100 text-red-600 leading-none">INT</span>
-            )}
-            {activity.intensity_type === 'speed' && (
-              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-600 leading-none">SPD</span>
-            )}
-            {activity.intensity_type === 'competition' && (
-              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-700 leading-none">★ COMP</span>
+            {(activity.intensity_type === 'interval' || activity.intensity_type === 'speed' || activity.intensity_type === 'competition') && (
+              <ActivityTypeBadge intensityType={activity.intensity_type} />
             )}
           </div>
         </div>

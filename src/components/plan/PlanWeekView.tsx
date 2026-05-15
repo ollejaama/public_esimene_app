@@ -6,6 +6,7 @@ import { PlannedActivity } from '@/lib/supabase/types'
 import { WeekNavigator } from '@/components/ui/WeekNavigator'
 import { PlanActivityModal } from './PlanActivityModal'
 import { SPORT_COLORS, PLANNED_SPORT_COLOR_KEY } from '@/lib/constants'
+import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 
 interface PlanWeekViewProps {
   plannedActivities: PlannedActivity[]
@@ -149,6 +150,9 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
                             style={{ backgroundColor: `${color}30`, color }}
                           >
                             <span className="truncate">{a.sport_type}</span>
+                            {(a.intensity_type === 'interval' || a.intensity_type === 'speed') && (
+                              <ActivityTypeBadge intensityType={a.intensity_type} />
+                            )}
                             <span className="ml-auto shrink-0 opacity-70">{formatDurationMinutes(a.duration_minutes)}</span>
                           </span>
                         )}
@@ -195,6 +199,9 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
                             style={{ backgroundColor: `${color}30`, color }}
                           >
                             <span className="truncate">{a.sport_type}</span>
+                            {(a.intensity_type === 'interval' || a.intensity_type === 'speed') && (
+                              <ActivityTypeBadge intensityType={a.intensity_type} />
+                            )}
                             <span className="ml-auto shrink-0 opacity-70">{formatDurationMinutes(a.duration_minutes)}</span>
                           </span>
                         )}

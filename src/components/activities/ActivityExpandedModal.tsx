@@ -14,6 +14,7 @@ import { Activity, ActivityLap } from '@/lib/supabase/types'
 import { ZoneRow } from '@/lib/analytics/hrZones'
 import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { effectiveSportKey, getActivityTitle } from '@/lib/activity'
+import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 
 interface ActivityExpandedModalProps {
   activityId: string
@@ -97,14 +98,8 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false }: 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-base font-semibold text-gray-900">{getActivityTitle(activity)}</h2>
-                  {activity.intensity_type === 'interval' && (
-                    <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-red-100 text-red-600 leading-none flex-shrink-0">INT</span>
-                  )}
-                  {activity.intensity_type === 'speed' && (
-                    <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-600 leading-none flex-shrink-0">SPD</span>
-                  )}
-                  {activity.intensity_type === 'competition' && (
-                    <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-700 leading-none flex-shrink-0">★ COMP</span>
+                  {(activity.intensity_type === 'interval' || activity.intensity_type === 'speed' || activity.intensity_type === 'competition') && (
+                    <ActivityTypeBadge intensityType={activity.intensity_type} />
                   )}
                   {activity.hidden && (
                     <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-200 text-gray-500 leading-none flex-shrink-0">hidden</span>

@@ -15,6 +15,8 @@ export default async function ComparePage({
   const session = await getSession()
   if (!session) redirect('/')
 
+  const isCoach = session.role === 'coach'
+
   const now = new Date()
   const currentWeekInfo = getISOWeek(now)
 
@@ -29,6 +31,16 @@ export default async function ComparePage({
 
   const db = createServiceClient()
 
+  let actualQuery = db
+    .from('activities')
+    .select('*')
+    .eq('user_id', session.userId)
+    .gte('start_date', weekStart.toISOString())
+    .lt('start_date', weekEnd.toISOString())
+    .order('start_date', { ascending: true })
+
+  if (isCoach) actualQuery = actualQuery.eq('hidden', false) as typeof actualQuery
+
   const [{ data: plannedActivities }, { data: actualActivities }] = await Promise.all([
     db
       .from('planned_activities')
@@ -37,13 +49,7 @@ export default async function ComparePage({
       .gte('date', weekStartStr)
       .lt('date', weekEndStr)
       .order('date', { ascending: true }),
-    db
-      .from('activities')
-      .select('*')
-      .eq('user_id', session.userId)
-      .gte('start_date', weekStart.toISOString())
-      .lt('start_date', weekEnd.toISOString())
-      .order('start_date', { ascending: true }),
+    actualQuery,
   ])
 
   return (
@@ -54,6 +60,7 @@ export default async function ComparePage({
         weekStart={weekStart}
         week={week}
         year={year}
+        isCoach={isCoach}
       />
     </AppShell>
   )

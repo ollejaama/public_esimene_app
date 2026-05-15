@@ -7,6 +7,7 @@ import { ActivityModal } from '@/components/activities/ActivityModal'
 import { PlannedActivityPreviewModal } from '@/components/activities/PlannedActivityPreviewModal'
 import { SPORT_COLORS, PLANNED_SPORT_COLOR_KEY, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { getActivityTitle, effectiveSportKey } from '@/lib/activity'
+import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 
 interface CompareWeekViewProps {
   plannedActivities: PlannedActivity[]
@@ -14,6 +15,7 @@ interface CompareWeekViewProps {
   weekStart: Date
   week: number
   year: number
+  isCoach?: boolean
 }
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -50,6 +52,7 @@ export function CompareWeekView({
   weekStart,
   week,
   year,
+  isCoach = false,
 }: CompareWeekViewProps) {
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [selectedPlanned, setSelectedPlanned] = useState<PlannedActivity | null>(null)
@@ -76,7 +79,7 @@ export function CompareWeekView({
   // Weekly volume totals
   const plannedTotalMinutes = plannedActivities.reduce((s, a) => s + a.duration_minutes, 0)
   const actualTotalMinutes = Math.round(
-    actualActivities.reduce((s, a) => s + (a.moving_time ?? a.elapsed_time), 0) / 60
+    actualActivities.filter((a) => !a.hidden).reduce((s, a) => s + (a.moving_time ?? a.elapsed_time), 0) / 60
   )
 
   return (
@@ -144,6 +147,9 @@ export function CompareWeekView({
                             style={{ backgroundColor: color }}
                           />
                           <span className="truncate font-medium">{a.sport_type}</span>
+                          {(a.intensity_type === 'interval' || a.intensity_type === 'speed' || a.intensity_type === 'competition') && (
+                            <ActivityTypeBadge intensityType={a.intensity_type} />
+                          )}
                           <span className="ml-auto shrink-0 opacity-70">
                             {formatDurationMinutes(a.duration_minutes)}
                           </span>
@@ -165,7 +171,7 @@ export function CompareWeekView({
                       <button
                         key={a.id}
                         onClick={() => setSelectedActivityId(a.id)}
-                        className="w-full text-left"
+                        className={`w-full text-left ${!isCoach && a.hidden ? 'opacity-40 grayscale' : ''}`}
                       >
                         <span
                           className="flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:opacity-80 transition-opacity"
@@ -176,6 +182,15 @@ export function CompareWeekView({
                             style={{ backgroundColor: color }}
                           />
                           <span className="truncate font-medium">{getActivityTitle(a)}</span>
+                          {!isCoach && a.hidden && (
+                            <svg className="w-2.5 h-2.5 flex-shrink-0 opacity-60" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+                              <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                            </svg>
+                          )}
+                          {!a.hidden && (a.intensity_type === 'interval' || a.intensity_type === 'speed' || a.intensity_type === 'competition') && (
+                            <ActivityTypeBadge intensityType={a.intensity_type} />
+                          )}
                           <span className="ml-auto shrink-0 opacity-70">
                             {formatDurationSeconds(a.moving_time ?? a.elapsed_time)}
                           </span>

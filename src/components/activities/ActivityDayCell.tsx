@@ -6,6 +6,7 @@ import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { formatDuration } from '@/lib/analytics/hrZones'
 import { effectiveContributionSeconds, effectiveSportKey } from '@/lib/activity'
 import { SportIcon } from '@/components/ui/SportIcon'
+import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 
 interface ActivityDayCellProps {
   date: Date
@@ -89,14 +90,8 @@ export function ActivityDayCell({ date, activities, isCurrentMonth, onActivityCl
                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                 </svg>
               )}
-              {activity.intensity_type === 'interval' && !activity.hidden && (
-                <span className="text-[9px] font-bold px-0.5 rounded bg-red-100 text-red-600 flex-shrink-0 leading-none">INT</span>
-              )}
-              {activity.intensity_type === 'speed' && !activity.hidden && (
-                <span className="text-[9px] font-bold px-0.5 rounded bg-blue-100 text-blue-600 flex-shrink-0 leading-none">SPD</span>
-              )}
-              {activity.intensity_type === 'competition' && !activity.hidden && (
-                <span className="text-[9px] font-bold px-0.5 rounded bg-amber-100 text-amber-700 flex-shrink-0 leading-none">★</span>
+              {(activity.intensity_type === 'interval' || activity.intensity_type === 'speed' || activity.intensity_type === 'competition') && !activity.hidden && (
+                <ActivityTypeBadge intensityType={activity.intensity_type} />
               )}
               {activity.contribution_hours != null && !activity.hidden && (
                 <span className="text-[9px] font-bold px-0.5 rounded bg-amber-50 text-amber-600 flex-shrink-0 leading-none">P</span>

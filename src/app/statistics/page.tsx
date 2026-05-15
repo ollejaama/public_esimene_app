@@ -3,6 +3,7 @@ import { SyncRefresher } from '@/components/sync/SyncRefresher'
 import { TimeRangeSelector, TimeRange } from '@/components/statistics/TimeRangeSelector'
 import { ZoneProgressionChart } from '@/components/statistics/ZoneProgressionChart'
 import { SeasonalVolumeWidget } from '@/components/statistics/SeasonalVolumeWidget'
+import { MonthlyVolumeWidget } from '@/components/statistics/MonthlyVolumeWidget'
 import { HRZoneDonutChart } from '@/components/statistics/HRZoneDonutChart'
 import { SportBreakdownTable } from '@/components/statistics/SportBreakdownTable'
 import { IntensityBreakdown } from '@/components/statistics/IntensityBreakdown'
@@ -190,6 +191,20 @@ export default async function StatisticsPage({
             </div>
           </div>
         </div>
+
+        {/* Monthly volume projection — month view only */}
+        {range === 'month' && (
+          <div className="border border-[#e5e5e5] rounded-lg p-5">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              Month Volume
+            </h2>
+            <MonthlyVolumeWidget
+              currentHours={totalSeconds / 3600}
+              monthStart={start}
+              monthEnd={end}
+            />
+          </div>
+        )}
 
         {/* Seasonal volume estimate — season view only */}
         {range === 'season' && (
