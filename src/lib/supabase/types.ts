@@ -143,6 +143,23 @@ export interface IntervalSet {
   created_at: string
 }
 
+export interface PlannedRestDay {
+  id: string
+  user_id: string
+  date: string  // 'YYYY-MM-DD'
+  created_at: string
+}
+
+export interface TrainingCamp {
+  id: string
+  user_id: string
+  name: string
+  start_date: string  // 'YYYY-MM-DD'
+  end_date: string    // 'YYYY-MM-DD'
+  notes: string | null
+  created_at: string
+}
+
 export interface SessionPayload {
   userId: string
   stravaAthleteId: number

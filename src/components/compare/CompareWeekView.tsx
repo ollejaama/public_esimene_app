@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { PlannedActivity, Activity, IllnessLog } from '@/lib/supabase/types'
+import { PlannedActivity, Activity, IllnessLog, TrainingCamp, PlannedRestDay } from '@/lib/supabase/types'
+import { fmtDateObj } from '@/lib/planUtils'
 import { WeekNavigator } from '@/components/ui/WeekNavigator'
 import { ActivityModal } from '@/components/activities/ActivityModal'
 import { PlannedActivityPreviewModal } from '@/components/activities/PlannedActivityPreviewModal'
@@ -23,6 +24,8 @@ interface CompareWeekViewProps {
   year: number
   isCoach?: boolean
   illnessEntries?: IllnessLog[]
+  camps?: TrainingCamp[]
+  restDays?: PlannedRestDay[]
 }
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -61,9 +64,17 @@ export function CompareWeekView({
   year,
   isCoach = false,
   illnessEntries = [],
+  camps = [],
+  restDays = [],
 }: CompareWeekViewProps) {
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [selectedPlanned, setSelectedPlanned] = useState<PlannedActivity | null>(null)
+
+  const restDaySet = new Set(restDays.map((r) => r.date))
+
+  function campsForDate(dateStr: string): TrainingCamp[] {
+    return camps.filter((c) => c.start_date <= dateStr && c.end_date >= dateStr)
+  }
 
   const plannedMap = new Map<string, PlannedActivity[]>()
   for (const a of plannedActivities) {
@@ -119,11 +130,29 @@ export function CompareWeekView({
           const isToday = toDateKey(new Date()) === dateKey
 
           const dayIllness = illnessEntries.filter((e) => e.start_date <= dateKey && e.end_date >= dateKey)
+          const isRestDay = restDaySet.has(dateKey)
+          const hasConflict = isRestDay && actual.length > 0
+          const dayCamps = campsForDate(dateKey)
 
           return (
+            <div key={dateKey} className="space-y-0">
+              {/* Camp indicator bar */}
+              {dayCamps.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1 rounded-t-lg bg-blue-50 border border-blue-100 border-b-0 text-[10px] text-blue-500 font-medium">
+                  <span>⛺</span>
+                  {dayCamps.map((c) => c.name).join(', ')}
+                </div>
+              )}
             <div
-              key={dateKey}
-              className={`grid grid-cols-[100px_1fr_1fr] gap-4 border border-[#e5e5e5] rounded-lg p-3 ${isEmpty && dayIllness.length === 0 ? 'opacity-40' : ''}`}
+              className={`grid grid-cols-[100px_1fr_1fr] gap-4 border rounded-lg p-3 ${
+                dayCamps.length > 0 ? 'rounded-tl-none rounded-tr-none border-blue-100' : ''
+              } ${
+                hasConflict
+                  ? 'border-amber-200 bg-amber-50'
+                  : isEmpty && dayIllness.length === 0
+                  ? 'border-[#e5e5e5] opacity-40'
+                  : 'border-[#e5e5e5]'
+              }`}
             >
               {/* Day label */}
               <div className="flex flex-col justify-center gap-1">
@@ -131,7 +160,7 @@ export function CompareWeekView({
                   {WEEKDAYS[i]}
                 </span>
                 <span className="text-xs text-gray-400">
-                  {day.getDate()} {day.toLocaleString('en-GB', { month: 'short' })}
+                  {fmtDateObj(day)}
                 </span>
                 {dayIllness.length > 0 && (
                   <div className="flex gap-0.5 flex-wrap">
@@ -146,11 +175,21 @@ export function CompareWeekView({
                     ))}
                   </div>
                 )}
+                {hasConflict && (
+                  <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-400 text-white leading-none w-fit">
+                    Trained on rest day
+                  </span>
+                )}
               </div>
 
               {/* Planned column */}
               <div className="space-y-1.5">
-                {planned.length === 0 ? (
+                {isRestDay && (
+                  <span className="inline-flex items-center text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                    🌙 Rest
+                  </span>
+                )}
+                {planned.length === 0 && !isRestDay ? (
                   <span className="text-xs text-gray-300">—</span>
                 ) : (
                   planned.map((a) => {
@@ -223,6 +262,7 @@ export function CompareWeekView({
                   })
                 )}
               </div>
+            </div>
             </div>
           )
         })}

@@ -2,14 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PlannedActivity } from '@/lib/supabase/types'
+import { PlannedActivity, TrainingCamp, PlannedRestDay } from '@/lib/supabase/types'
 import { WeekNavigator } from '@/components/ui/WeekNavigator'
 import { PlanActivityModal } from './PlanActivityModal'
+import { CampModal } from './CampModal'
 import { SPORT_COLORS, PLANNED_SPORT_COLOR_KEY } from '@/lib/constants'
 import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
+import { toDateStr, getSeasonYear, fmtDateDisplay } from '@/lib/planUtils'
 
 interface PlanWeekViewProps {
   plannedActivities: PlannedActivity[]
+  camps: TrainingCamp[]
+  restDays: PlannedRestDay[]
   weekStart: Date
   week: number
   year: number
@@ -41,9 +45,11 @@ interface ModalState {
   timeOfDay: 'morning' | 'evening'
 }
 
-export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanWeekViewProps) {
+export function PlanWeekView({ plannedActivities, camps, restDays, weekStart, week, year }: PlanWeekViewProps) {
   const router = useRouter()
   const [modal, setModal] = useState<ModalState | null>(null)
+  const [campModal, setCampModal] = useState<{ mode: 'add' | 'edit'; camp?: TrainingCamp } | null>(null)
+  const [restDaySet, setRestDaySet] = useState<Set<string>>(new Set(restDays.map((r) => r.date)))
 
   // Build a map: dateKey → PlannedActivity[]
   const activityMap = new Map<string, PlannedActivity[]>()
@@ -64,11 +70,56 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
     router.refresh()
   }
 
+  function handleCampSaved() {
+    setCampModal(null)
+    router.refresh()
+  }
+
+  async function toggleRestDay(dateKey: string) {
+    const isRest = restDaySet.has(dateKey)
+    // Optimistic update
+    setRestDaySet((prev) => {
+      const next = new Set(prev)
+      if (isRest) next.delete(dateKey)
+      else next.add(dateKey)
+      return next
+    })
+    try {
+      if (isRest) {
+        await fetch(`/api/planned-rest-days/${dateKey}`, { method: 'DELETE' })
+      } else {
+        await fetch('/api/planned-rest-days', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: dateKey }),
+        })
+      }
+    } catch {
+      // Revert on failure
+      setRestDaySet((prev) => {
+        const next = new Set(prev)
+        if (isRest) next.add(dateKey)
+        else next.delete(dateKey)
+        return next
+      })
+    }
+  }
+
   // Date range label: "11 May, Mon → 17 May, Sun"
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekStart.getDate() + 6)
+
+  // Camps overlapping this week
+  const weekEndStr = toDateStr(weekEnd)
+  const weekStartStr = toDateStr(weekStart)
+  const overlappingCamps = camps.filter((c) => c.start_date <= weekEndStr && c.end_date >= weekStartStr)
+
   function fmtDay(d: Date) {
-    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', weekday: 'short' })
+    const dd = String(d.getDate()).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    const wd = d.toLocaleString('en-GB', { weekday: 'short' })
+    return `${dd}/${mm}/${yyyy} ${wd}`
   }
   const dateRangeLabel = `${fmtDay(weekStart)} → ${fmtDay(weekEnd)}`
 
@@ -78,22 +129,71 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
   return (
     <>
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Plan</h1>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Week {week} — {dateRangeLabel}
-          </p>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Plan</h1>
+            <p className="text-xs text-gray-400 mt-0.5">Week {week} — {dateRangeLabel}</p>
+          </div>
+          {/* View tabs */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 text-xs">
+            <button
+              onClick={() => router.push(`/plan?view=season&year=${getSeasonYear(weekStart)}`)}
+              className="px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Season
+            </button>
+            <button
+              onClick={() => router.push(`/plan?view=month&month=${weekStart.getMonth() + 1}&year=${weekStart.getFullYear()}`)}
+              className="px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Month
+            </button>
+            <span className="px-3 py-1.5 rounded-md bg-white shadow-sm font-semibold text-gray-900">Week</span>
+          </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <WeekNavigator week={week} year={year} basePath="/plan" />
-          {totalMinutes > 0 ? (
-            <span className="text-xs text-gray-500">{formatDurationMinutes(totalMinutes)} planned</span>
-          ) : (
-            <span className="text-xs text-gray-300">No sessions planned</span>
-          )}
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setCampModal({ mode: 'add' })}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add camp
+          </button>
+          <div className="flex flex-col items-end gap-1">
+            <WeekNavigator week={week} year={year} basePath="/plan" />
+            {totalMinutes > 0 ? (
+              <span className="text-xs text-gray-500">{formatDurationMinutes(totalMinutes)} planned</span>
+            ) : (
+              <span className="text-xs text-gray-300">No sessions planned</span>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Camp banner */}
+      {overlappingCamps.length > 0 && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-50 border border-blue-100">
+          <span className="text-sm">⛺</span>
+          <div className="flex flex-wrap gap-2">
+            {overlappingCamps.map((camp) => (
+              <button
+                key={camp.id}
+                onClick={() => setCampModal({ mode: 'edit', camp })}
+                className="text-sm font-medium text-blue-700 hover:text-blue-900 transition-colors"
+              >
+                {camp.name}
+                <span className="ml-1 text-xs text-blue-400 font-normal">
+                  ({fmtDateDisplay(camp.start_date)} – {fmtDateDisplay(camp.end_date)})
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Week grid */}
       <div className="grid grid-cols-7 gap-3">
@@ -103,6 +203,8 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
           const morning = activities.filter((a) => (a.time_of_day ?? 'morning') === 'morning')
           const evening = activities.filter((a) => a.time_of_day === 'evening')
           const isToday = toDateKey(new Date()) === dateKey
+          const isRest = restDaySet.has(dateKey)
+          const inCamp = camps.some((c) => c.start_date <= dateKey && c.end_date >= dateKey)
           const dayLabel = WEEKDAYS[i]
           const dayNum = day.getDate()
           const monthLabel = day.toLocaleString('en-GB', { month: 'short' })
@@ -110,13 +212,24 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
           return (
             <div
               key={dateKey}
-              className="rounded-lg p-3 flex flex-col min-h-[200px] bg-white shadow-sm border border-[#e5e5e5]"
+              className={`rounded-lg p-3 flex flex-col min-h-[200px] shadow-sm border ${
+                isRest
+                  ? 'bg-gray-50 border-gray-200'
+                  : inCamp
+                  ? 'bg-blue-50 border-blue-100'
+                  : 'bg-white border-[#e5e5e5]'
+              }`}
             >
               {/* Day header */}
               <div className="mb-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  {dayLabel}
-                </span>
+                <div className="flex items-start justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    {dayLabel}
+                  </span>
+                  {isRest && (
+                    <span className="text-[9px] font-medium text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">REST</span>
+                  )}
+                </div>
                 <div className="flex items-baseline gap-1 mt-0.5">
                   <span className={`text-sm font-semibold ${isToday ? 'text-gray-900 underline' : 'text-gray-700'}`}>
                     {dayNum}
@@ -219,6 +332,19 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
                   Add
                 </button>
               </div>
+
+              {/* Rest day toggle */}
+              <div className="border-t border-[#f0f0f0] mt-2 pt-2">
+                <button
+                  onClick={() => toggleRestDay(dateKey)}
+                  className={`flex items-center gap-1.5 text-[10px] transition-colors ${
+                    isRest ? 'text-gray-500 font-medium' : 'text-gray-300 hover:text-gray-500'
+                  }`}
+                >
+                  <span>{isRest ? '🌙' : '○'}</span>
+                  <span>Rest day</span>
+                </button>
+              </div>
             </div>
           )
         })}
@@ -232,6 +358,16 @@ export function PlanWeekView({ plannedActivities, weekStart, week, year }: PlanW
           initialTimeOfDay={modal.timeOfDay}
           onClose={() => setModal(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {campModal && (
+        <CampModal
+          mode={campModal.mode}
+          camp={campModal.camp}
+          defaultStartDate={weekStartStr}
+          onClose={() => setCampModal(null)}
+          onSaved={handleCampSaved}
         />
       )}
     </>
