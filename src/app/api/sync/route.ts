@@ -4,8 +4,6 @@ import { getSessionFromRequest } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getValidAccessToken, getActivities, getHRStream, getGPSStream, getLaps } from '@/lib/strava/api'
 import { setSyncProgress, clearSyncProgress } from '@/lib/sync/store'
-import { computeDecoupling, isEligibleForDecoupling } from '@/lib/analytics/decoupling'
-
 const BATCH_SIZE = 50
 const RATE_LIMIT_THRESHOLD = 85  // pause if we've used this many requests per 15min
 const RATE_LIMIT_WAIT_SEC = 60   // wait 60s when rate limited
@@ -188,15 +186,6 @@ async function runSync(userId: string, fullSync: boolean): Promise<void> {
                 gpsFetched++
                 freshLatlng = gpsResult.latlng
               }
-            }
-          }
-
-          // Compute and cache decoupling for newly streamed eligible activities
-          if (freshHRData && freshLatlng && isEligibleForDecoupling(activity.sport_type, null)) {
-            const activitySeconds = activity.moving_time ?? activity.elapsed_time
-            const decoupling = computeDecoupling(freshHRData, freshLatlng, activitySeconds)
-            if (decoupling !== null) {
-              db.from('activities').update({ decoupling_percent: decoupling }).eq('id', actRow.id).then(() => {})
             }
           }
 

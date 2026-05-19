@@ -44,7 +44,7 @@ export interface Activity {
   athlete_heart: boolean
   athlete_heart_at: string | null
   athlete_heart_unread: boolean
-  decoupling_percent: number | null
+  manual_zone_seconds: { z0: number; z1: number; z2: number; z3: number; z4: number; z5: number } | null
 }
 
 export interface ActivityHRStream {
@@ -129,6 +129,17 @@ export interface LactateMeasurement {
   activity_id: string
   user_id: string
   value_mmol: number
+  created_at: string
+}
+
+export interface IntervalSet {
+  id: string
+  activity_id: string
+  user_id: string
+  set_order: number
+  reps: number
+  duration_secs: number
+  zone: 'I2' | 'I3' | 'I4' | 'I5' | 'Progressive'
   created_at: string
 }
 

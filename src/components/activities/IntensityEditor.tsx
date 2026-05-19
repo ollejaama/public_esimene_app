@@ -7,9 +7,10 @@ type IntensityType = 'regular' | 'interval' | 'speed' | 'competition'
 interface IntensityEditorProps {
   activityId: string
   initialValue: IntensityType | null
+  onChanged?: (val: IntensityType) => void
 }
 
-export function IntensityEditor({ activityId, initialValue }: IntensityEditorProps) {
+export function IntensityEditor({ activityId, initialValue, onChanged }: IntensityEditorProps) {
   const [value, setValue] = useState<IntensityType>(initialValue ?? 'regular')
   const [saving, setSaving] = useState(false)
 
@@ -22,6 +23,7 @@ export function IntensityEditor({ activityId, initialValue }: IntensityEditorPro
       body: JSON.stringify({ intensity_type: newValue }),
     })
     setValue(newValue)
+    if (onChanged) onChanged(newValue)
     setSaving(false)
   }
 

@@ -56,6 +56,8 @@ export function aggregateWeek(
     if (hrData) {
       const rawZones = computeHRZoneSeconds(hrData, zones, activitySeconds)
       allZoneSeconds.push(applyPartialContribution(rawZones, contributionSecs))
+    } else if (activity.is_manual && activity.manual_zone_seconds) {
+      allZoneSeconds.push(applyPartialContribution(activity.manual_zone_seconds, contributionSecs))
     } else {
       // Activities without HR data count as I0 (untracked), scaled to contribution
       allZoneSeconds.push({ z0: contributionSecs, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 })

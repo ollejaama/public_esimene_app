@@ -4,6 +4,10 @@ export const SPORT_COLORS: Record<string, string> = {
   Rollerski: '#2dd4bf',
   Strength: '#a855f7',
   Treadmill: '#9ca3af',
+  'Treadmill running': '#9ca3af',
+  'Treadmill classic': '#9ca3af',
+  'Treadmill skate': '#9ca3af',
+  Imitation: '#e5e7eb',
   Cycling: '#f97316',
   Other: '#e5e7eb',
 }
@@ -30,18 +34,20 @@ export const CUSTOM_SPORT_TAGS = [
   'cr_skate',
   'rollerski_classic',
   'rollerski_skate',
-  'treadmill_skiing',
+  'treadmill_classic',
+  'treadmill_skate',
   'strength_basic',
 ] as const
 
 export type CustomSportTag = (typeof CUSTOM_SPORT_TAGS)[number]
 
 export const CUSTOM_SPORT_TAG_LABELS: Record<CustomSportTag, string> = {
-  crosscountry_classic: 'Cross-country ski (classic)',
-  cr_skate: 'Cross-country ski (skate)',
-  rollerski_classic: 'Rollerski (classic)',
-  rollerski_skate: 'Rollerski (skate)',
-  treadmill_skiing: 'Treadmill skiing',
+  crosscountry_classic: 'Cross-country classic',
+  cr_skate: 'Cross-country skate',
+  rollerski_classic: 'Rollerski classic',
+  rollerski_skate: 'Rollerski skate',
+  treadmill_classic: 'Treadmill classic',
+  treadmill_skate: 'Treadmill skate',
   strength_basic: 'Basic strength',
 }
 
@@ -51,7 +57,8 @@ export const CUSTOM_TAG_COLOR_KEY: Record<string, string> = {
   cr_skate: 'Skiing',
   rollerski_classic: 'Rollerski',
   rollerski_skate: 'Rollerski',
-  treadmill_skiing: 'Treadmill',
+  treadmill_classic: 'Treadmill',
+  treadmill_skate: 'Treadmill',
   strength_basic: 'Strength',
 }
 
@@ -59,11 +66,12 @@ export const CUSTOM_TAG_COLOR_KEY: Record<string, string> = {
 export const SPORT_BREAKDOWN_ROWS = [
   { key: 'Running', label: 'Running' },
   { key: 'Treadmill', label: 'Treadmill' },
-  { key: 'crosscountry_classic', label: 'Cross-country ski (classic)' },
-  { key: 'cr_skate', label: 'Cross-country ski (skate)' },
-  { key: 'rollerski_classic', label: 'Rollerski (classic)' },
-  { key: 'rollerski_skate', label: 'Rollerski (skate)' },
-  { key: 'treadmill_skiing', label: 'Treadmill skiing' },
+  { key: 'crosscountry_classic', label: 'Cross-country classic' },
+  { key: 'cr_skate', label: 'Cross-country skate' },
+  { key: 'rollerski_classic', label: 'Rollerski classic' },
+  { key: 'rollerski_skate', label: 'Rollerski skate' },
+  { key: 'treadmill_classic', label: 'Treadmill classic' },
+  { key: 'treadmill_skate', label: 'Treadmill skate' },
   { key: 'Skiing', label: 'Skiing (untagged)' },
   { key: 'Strength', label: 'Strength' },
   { key: 'strength_basic', label: 'Basic strength' },
@@ -72,15 +80,16 @@ export const SPORT_BREAKDOWN_ROWS = [
 ]
 
 export const PLANNED_SPORT_TYPES = [
-  'Cross-country ski classic',
-  'Cross-country ski skate',
+  'Cross-country classic',
+  'Cross-country skate',
   'Rollerski classic',
   'Rollerski skate',
   'Running',
   'Strength',
   'Basic strength',
-  'Treadmill skiing',
   'Treadmill running',
+  'Treadmill classic',
+  'Treadmill skate',
   'Imitation',
   'Cycling',
   'Other',
@@ -89,18 +98,19 @@ export const PLANNED_SPORT_TYPES = [
 export type PlannedSportType = (typeof PLANNED_SPORT_TYPES)[number]
 
 export const PLANNED_SPORT_COLOR_KEY: Record<string, string> = {
-  'Cross-country ski classic': 'Skiing',
-  'Cross-country ski skate':   'Skiing',
-  'Rollerski classic':         'Rollerski',
-  'Rollerski skate':           'Rollerski',
-  'Running':                   'Running',
-  'Strength':                  'Strength',
-  'Basic strength':            'Strength',
-  'Treadmill skiing':          'Treadmill',
-  'Treadmill running':         'Treadmill',
-  'Imitation':                 'Other',
-  'Cycling':                   'Cycling',
-  'Other':                     'Other',
+  'Cross-country classic':  'Skiing',
+  'Cross-country skate':    'Skiing',
+  'Rollerski classic':      'Rollerski',
+  'Rollerski skate':        'Rollerski',
+  'Running':                'Running',
+  'Strength':               'Strength',
+  'Basic strength':         'Strength',
+  'Treadmill running':      'Treadmill',
+  'Treadmill classic':      'Treadmill',
+  'Treadmill skate':        'Treadmill',
+  'Imitation':              'Other',
+  'Cycling':                'Cycling',
+  'Other':                  'Other',
 }
 
 export const STRAVA_SCOPES = 'read,activity:read_all'

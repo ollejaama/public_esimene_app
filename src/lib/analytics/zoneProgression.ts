@@ -42,6 +42,9 @@ function computeActivityZones(
       return applyPartialContribution(rawZones, contributionSecs)
     }
   }
+  if (activity.is_manual && activity.manual_zone_seconds) {
+    return applyPartialContribution(activity.manual_zone_seconds, contributionSecs)
+  }
   return { z0: contributionSecs, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
 }
 

@@ -1,55 +1,53 @@
 'use client'
 
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer,
-} from 'recharts'
+import { useState } from 'react'
+import { Modal } from '@/components/ui/Modal'
 
-interface LactateDataPoint {
-  date: string
-  avg_mmol: number
+interface LactateWidgetProps {
+  avg: number | null
+  sessionCount: number
+  lactateBySport: { sportKey: string; avgMmol: number }[]
 }
 
-interface LactateChartProps {
-  data: LactateDataPoint[]
-}
+export function LactateChart({ avg, sessionCount, lactateBySport }: LactateWidgetProps) {
+  const [open, setOpen] = useState(false)
 
-export function LactateChart({ data }: LactateChartProps) {
-  if (data.length === 0) {
+  if (avg === null) {
     return <p className="text-xs text-gray-400">No lactate data recorded</p>
   }
 
   return (
-    <ResponsiveContainer width="100%" height={160}>
-      <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis
-          dataKey="date"
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={(v: string) => v.slice(5)}
-        />
-        <YAxis
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={(v) => `${v.toFixed(1)}`}
-          unit=" mmol"
-        />
-        <Tooltip
-          formatter={(v: unknown) => [`${typeof v === 'number' ? v.toFixed(2) : v} mmol/L`, 'Avg lactate'] as [string, string]}
-          contentStyle={{ fontSize: 11, borderRadius: 6, border: '1px solid #e5e7eb' }}
-        />
-        <Line
-          type="monotone"
-          dataKey="avg_mmol"
-          stroke="#3b82f6"
-          strokeWidth={2}
-          dot={{ r: 3, fill: '#3b82f6' }}
-          activeDot={{ r: 4 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="text-left cursor-pointer hover:opacity-80 transition-opacity"
+        title="View per-sport breakdown"
+      >
+        <p className="text-4xl font-bold text-gray-900 leading-none">{avg.toFixed(2)}</p>
+        <p className="text-xs text-gray-400 mt-1">mmol/L avg · {sessionCount} {sessionCount === 1 ? 'session' : 'sessions'}</p>
+      </button>
+
+      {open && (
+        <Modal open onClose={() => setOpen(false)} maxWidth="max-w-sm" align="center">
+          <div className="p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-1 pr-8">Lactate by sport</h2>
+            <p className="text-xs text-gray-400 mb-5">Average lactate per sport for this period</p>
+
+            {lactateBySport.length === 0 ? (
+              <p className="text-sm text-gray-400">No lactate data for this period.</p>
+            ) : (
+              <div className="space-y-1">
+                {lactateBySport.map(({ sportKey, avgMmol }) => (
+                  <div key={sportKey} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-gray-50">
+                    <span className="text-sm text-gray-700">{sportKey}</span>
+                    <span className="text-sm font-semibold text-gray-900">{avgMmol.toFixed(2)} mmol/L</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+    </>
   )
 }

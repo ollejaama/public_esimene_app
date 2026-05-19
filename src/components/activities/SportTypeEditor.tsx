@@ -1,7 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { SPORT_COLORS, CUSTOM_SPORT_TAG_LABELS, CustomSportTag } from '@/lib/constants'
+import { CUSTOM_SPORT_TAG_LABELS, CustomSportTag } from '@/lib/constants'
+
+const SPORT_TYPE_OPTIONS = [
+  { value: 'Running',              label: 'Running' },
+  { value: 'Treadmill running',    label: 'Treadmill running' },
+  { value: 'crosscountry_classic', label: 'Cross-country classic' },
+  { value: 'cr_skate',             label: 'Cross-country skate' },
+  { value: 'rollerski_classic',    label: 'Rollerski classic' },
+  { value: 'rollerski_skate',      label: 'Rollerski skate' },
+  { value: 'treadmill_classic',    label: 'Treadmill classic' },
+  { value: 'treadmill_skate',      label: 'Treadmill skate' },
+  { value: 'Imitation',            label: 'Imitation' },
+  { value: 'Cycling',              label: 'Cycling' },
+  { value: 'Strength',             label: 'Strength' },
+  { value: 'strength_basic',       label: 'Basic strength' },
+  { value: 'Other',                label: 'Other' },
+]
 
 interface SportTypeEditorProps {
   activityId: string
@@ -78,8 +94,8 @@ export function SportTypeEditor({ activityId, initialOverride, originalSportType
             className="border border-[#e5e5e5] rounded px-2 py-0.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-400"
           >
             <option value="">— use original —</option>
-            {Object.keys(SPORT_COLORS).map((key) => (
-              <option key={key} value={key}>{key}</option>
+            {SPORT_TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
           <div className="flex items-center gap-2">

@@ -18,7 +18,8 @@ export function SportIcon({ sportKey, className = 'w-3 h-3' }: SportIconProps) {
     sportKey === 'Skiing' ||
     sportKey === 'crosscountry_classic' ||
     sportKey === 'cr_skate' ||
-    sportKey === 'treadmill_skiing' ||
+    sportKey === 'treadmill_classic' ||
+    sportKey === 'treadmill_skate' ||
     sportKey === 'imitation' ||
     sportKey === 'Rollerski' ||
     sportKey === 'rollerski_classic' ||

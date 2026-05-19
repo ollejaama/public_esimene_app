@@ -17,6 +17,9 @@ import { ZoneRow } from '@/lib/analytics/hrZones'
 import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { effectiveSportKey, getActivityTitle } from '@/lib/activity'
 import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
+import { IntervalSetsSection } from './IntervalSetsSection'
+import { IntervalSetupModal } from './IntervalSetupModal'
+import { NotesEditor } from './NotesEditor'
 
 interface ActivityExpandedModalProps {
   activityId: string
@@ -62,6 +65,8 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
   const [detail, setDetail] = useState<ActivityDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [localIntensityType, setLocalIntensityType] = useState<string | null>(null)
+  const [showIntervalModal, setShowIntervalModal] = useState(false)
 
   // Coach comment state
   const [commentValue, setCommentValue] = useState('')
@@ -76,6 +81,7 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
       .then((r) => r.json())
       .then((data) => {
         setDetail(data)
+        setLocalIntensityType(data.activity?.intensity_type ?? null)
         setCommentValue(data.activity?.coach_comment ?? '')
         setHeartActive(data.activity?.athlete_heart ?? false)
         setLoading(false)
@@ -177,6 +183,11 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
               onChanged={handleTagChanged}
             />
 
+            <div className="border border-[#e5e5e5] rounded-lg p-5">
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Notes</h2>
+              <NotesEditor activityId={activity.id} initialNotes={activity.notes} />
+            </div>
+
             <ActivityContent
               activity={activity}
               zoneRows={detail.zoneRows}
@@ -188,7 +199,27 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
               elevationData={detail.elevation}
               zoneBoundaries={detail.zoneBoundaries}
               showDangerControls={false}
+              onIntensityChange={(val) => {
+                setLocalIntensityType(val)
+                if (val === 'interval') setShowIntervalModal(true)
+              }}
             />
+
+            {localIntensityType === 'interval' && (
+              <IntervalSetsSection
+                activityId={activityId}
+                zoneRows={detail.zoneRows}
+                hasHRData={!!detail.hrData && detail.hrData.length > 0}
+              />
+            )}
+
+            {showIntervalModal && (
+              <IntervalSetupModal
+                activityId={activityId}
+                onClose={() => setShowIntervalModal(false)}
+                onSaved={() => setShowIntervalModal(false)}
+              />
+            )}
 
             {/* RPE */}
             {showRPE && detail.activity && (

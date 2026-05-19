@@ -7,7 +7,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { sport_type, custom_sport_tag, date, time_of_day, duration_seconds, intensity_type, notes } = body
+  const { sport_type, custom_sport_tag, date, time_of_day, duration_seconds, intensity_type, notes, manual_zone_seconds } = body
 
   if (!sport_type || !date || !duration_seconds) {
     return NextResponse.json({ error: 'sport_type, date, duration_seconds required' }, { status: 400 })
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       is_manual: true,
       notes: notes || null,
       intensity_type: intensity_type ?? 'regular',
+      manual_zone_seconds: manual_zone_seconds ?? null,
     })
     .select()
     .single()

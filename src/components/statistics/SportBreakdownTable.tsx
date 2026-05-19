@@ -2,7 +2,7 @@ import { WeekSummary } from '@/lib/analytics/weekSummary'
 import { formatDuration } from '@/lib/analytics/hrZones'
 import { SPORT_BREAKDOWN_ROWS } from '@/lib/constants'
 
-const SKIING_KEYS = ['crosscountry_classic', 'cr_skate', 'rollerski_classic', 'rollerski_skate', 'treadmill_skiing', 'Skiing']
+const SKIING_KEYS = ['crosscountry_classic', 'cr_skate', 'rollerski_classic', 'rollerski_skate', 'treadmill_classic', 'treadmill_skate', 'Skiing']
 
 interface SportBreakdownTableProps {
   bySport: WeekSummary['bySport']
@@ -28,7 +28,7 @@ export function SportBreakdownTable({ bySport }: SportBreakdownTableProps) {
   }
 
   // Insert "Total skiing" after the last skiing row (before Strength)
-  const skiingRowKeys = new Set(['crosscountry_classic', 'cr_skate', 'rollerski_classic', 'rollerski_skate', 'treadmill_skiing', 'Skiing'])
+  const skiingRowKeys = new Set(['crosscountry_classic', 'cr_skate', 'rollerski_classic', 'rollerski_skate', 'treadmill_classic', 'treadmill_skate', 'Skiing'])
   const lastSkiingIdx = rows.reduce((last, row, i) => skiingRowKeys.has(row.key) ? i : last, -1)
 
   return (

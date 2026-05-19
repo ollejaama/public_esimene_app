@@ -3,25 +3,35 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
-import { PLANNED_SPORT_TYPES } from '@/lib/constants'
 
-const SKIING_TYPES = new Set([
-  'Cross-country ski classic',
-  'Cross-country ski skate',
-  'Rollerski classic',
-  'Rollerski skate',
-  'Treadmill skiing',
-])
-
-const SKIING_TAG_OPTIONS = [
-  { label: 'Classic', value: 'crosscountry_classic' },
-  { label: 'Skate', value: 'cr_skate' },
-  { label: 'Rollerski classic', value: 'rollerski_classic' },
-  { label: 'Rollerski skate', value: 'rollerski_skate' },
-  { label: 'Treadmill skiing', value: 'treadmill_skiing' },
+const MANUAL_SPORT_OPTIONS = [
+  { label: 'Running',               sportType: 'Running',               tag: null },
+  { label: 'Treadmill running',     sportType: 'Treadmill running',     tag: null },
+  { label: 'Cross-country classic', sportType: 'Cross-country classic', tag: 'crosscountry_classic' },
+  { label: 'Cross-country skate',   sportType: 'Cross-country skate',   tag: 'cr_skate' },
+  { label: 'Rollerski classic',     sportType: 'Rollerski classic',     tag: 'rollerski_classic' },
+  { label: 'Rollerski skate',       sportType: 'Rollerski skate',       tag: 'rollerski_skate' },
+  { label: 'Treadmill classic',     sportType: 'Treadmill classic',     tag: 'treadmill_classic' },
+  { label: 'Treadmill skate',       sportType: 'Treadmill skate',       tag: 'treadmill_skate' },
+  { label: 'Imitation',             sportType: 'Imitation',             tag: null },
+  { label: 'Cycling',               sportType: 'Cycling',               tag: null },
+  { label: 'Strength',              sportType: 'Strength',              tag: null },
+  { label: 'Basic strength',        sportType: 'Basic strength',        tag: 'strength_basic' },
+  { label: 'Other',                 sportType: 'Other',                 tag: null },
 ]
 
-const STRENGTH_TYPES = new Set(['Strength', 'Basic strength'])
+const ZONE_LABELS: { key: keyof ZoneMins; label: string }[] = [
+  { key: 'z0', label: 'Z0 (easy/recovery)' },
+  { key: 'z1', label: 'Z1' },
+  { key: 'z2', label: 'Z2' },
+  { key: 'z3', label: 'Z3' },
+  { key: 'z4', label: 'Z4' },
+  { key: 'z5', label: 'Z5 (hard)' },
+]
+
+interface ZoneMins {
+  z0: number; z1: number; z2: number; z3: number; z4: number; z5: number
+}
 
 function todayString(): string {
   const d = new Date()
@@ -34,19 +44,21 @@ interface ManualActivityModalProps {
 
 export function ManualActivityModal({ onClose }: ManualActivityModalProps) {
   const router = useRouter()
-  const [sportType, setSportType] = useState<string>(PLANNED_SPORT_TYPES[0])
-  const [customTag, setCustomTag] = useState<string>('')
+  const [selectedOption, setSelectedOption] = useState(MANUAL_SPORT_OPTIONS[0])
   const [date, setDate] = useState(todayString())
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'evening'>('morning')
   const [hours, setHours] = useState(1)
   const [minutes, setMinutes] = useState(0)
-  const [intensityType, setIntensityType] = useState<'regular' | 'interval' | 'speed' | 'competition' | 'basic'>('regular')
+  const [intensityType, setIntensityType] = useState<'regular' | 'interval' | 'speed' | 'competition'>('regular')
+  const [showZones, setShowZones] = useState(false)
+  const [zoneMins, setZoneMins] = useState<ZoneMins>({ z0: 0, z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 })
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const isSkiing = SKIING_TYPES.has(sportType)
-  const isStrength = STRENGTH_TYPES.has(sportType)
+  function updateZone(key: keyof ZoneMins, value: number) {
+    setZoneMins((prev) => ({ ...prev, [key]: Math.max(0, value) }))
+  }
 
   async function handleSave() {
     setError(null)
@@ -56,15 +68,17 @@ export function ManualActivityModal({ onClose }: ManualActivityModalProps) {
       return
     }
 
-    const resolvedIntensity = isStrength
-      ? (intensityType === 'basic' ? 'regular' : 'regular')
-      : intensityType === 'basic' ? 'regular' : intensityType
-
-    const resolvedTag = isStrength && intensityType === 'basic'
-      ? 'strength_basic'
-      : isSkiing && customTag
-        ? customTag
-        : null
+    const hasZoneData = showZones && Object.values(zoneMins).some((v) => v > 0)
+    const manual_zone_seconds = hasZoneData
+      ? {
+          z0: zoneMins.z0 * 60,
+          z1: zoneMins.z1 * 60,
+          z2: zoneMins.z2 * 60,
+          z3: zoneMins.z3 * 60,
+          z4: zoneMins.z4 * 60,
+          z5: zoneMins.z5 * 60,
+        }
+      : null
 
     setSaving(true)
     try {
@@ -72,13 +86,14 @@ export function ManualActivityModal({ onClose }: ManualActivityModalProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sport_type: sportType,
-          custom_sport_tag: resolvedTag,
+          sport_type: selectedOption.sportType,
+          custom_sport_tag: selectedOption.tag,
           date,
           time_of_day: timeOfDay,
           duration_seconds,
-          intensity_type: resolvedIntensity,
+          intensity_type: intensityType,
           notes: notes || null,
+          manual_zone_seconds,
         }),
       })
       if (!res.ok) {
@@ -107,38 +122,18 @@ export function ManualActivityModal({ onClose }: ManualActivityModalProps) {
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-gray-600">Sport type</label>
           <select
-            value={sportType}
-            onChange={(e) => { setSportType(e.target.value); setCustomTag('') }}
+            value={selectedOption.sportType}
+            onChange={(e) => {
+              const opt = MANUAL_SPORT_OPTIONS.find((o) => o.sportType === e.target.value)
+              if (opt) setSelectedOption(opt)
+            }}
             className="w-full border border-[#e5e5e5] rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-400"
           >
-            {PLANNED_SPORT_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
+            {MANUAL_SPORT_OPTIONS.map((o) => (
+              <option key={o.sportType} value={o.sportType}>{o.label}</option>
             ))}
           </select>
         </div>
-
-        {/* Custom tag for skiing */}
-        {isSkiing && (
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-600">Skiing style</label>
-            <div className="flex flex-wrap gap-1.5">
-              {SKIING_TAG_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setCustomTag(customTag === opt.value ? '' : opt.value)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-colors ${
-                    customTag === opt.value
-                      ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-white text-gray-500 border-[#e5e5e5] hover:border-gray-400'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Date */}
         <div className="space-y-1.5">
@@ -207,43 +202,54 @@ export function ManualActivityModal({ onClose }: ManualActivityModalProps) {
         </div>
 
         {/* Intensity */}
-        {isStrength ? (
-          <div className="flex gap-2">
-            {(['regular', 'basic'] as const).map((val) => (
-              <button
-                key={val}
-                type="button"
-                onClick={() => setIntensityType(val)}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                  intensityType === val
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'bg-white text-gray-500 border-[#e5e5e5] hover:border-gray-400'
-                }`}
-              >
-                {val === 'regular' ? 'Regular' : 'Basic'}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            {(['regular', 'interval', 'speed', 'competition'] as const).map((val) => (
-              <button
-                key={val}
-                type="button"
-                onClick={() => setIntensityType(val)}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                  intensityType === val
-                    ? val === 'competition'
-                      ? 'bg-amber-500 text-white border-amber-500'
-                      : 'bg-gray-900 text-white border-gray-900'
-                    : 'bg-white text-gray-500 border-[#e5e5e5] hover:border-gray-400'
-                }`}
-              >
-                {val.charAt(0).toUpperCase() + val.slice(1)}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex gap-2">
+          {(['regular', 'interval', 'speed', 'competition'] as const).map((val) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setIntensityType(val)}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
+                intensityType === val
+                  ? val === 'competition'
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-gray-900 text-white border-gray-900'
+                  : 'bg-white text-gray-500 border-[#e5e5e5] hover:border-gray-400'
+              }`}
+            >
+              {val.charAt(0).toUpperCase() + val.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Zone breakdown toggle */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setShowZones((v) => !v)}
+            className="text-xs text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors"
+          >
+            {showZones ? 'Hide zone breakdown' : '+ Add zone breakdown'}
+          </button>
+
+          {showZones && (
+            <div className="space-y-2 p-3 border border-[#e5e5e5] rounded-md bg-gray-50">
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Time per zone (minutes)</p>
+              {ZONE_LABELS.map(({ key, label }) => (
+                <div key={key} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-600 w-28 flex-shrink-0">{label}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={zoneMins[key]}
+                    onChange={(e) => updateZone(key, parseInt(e.target.value) || 0)}
+                    className="w-16 border border-[#e5e5e5] rounded px-2 py-1 text-sm text-gray-900 text-center focus:outline-none focus:ring-1 focus:ring-gray-400 bg-white"
+                  />
+                  <span className="text-xs text-gray-400">min</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Notes */}
         <div className="space-y-1.5">

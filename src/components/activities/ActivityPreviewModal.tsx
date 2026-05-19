@@ -10,6 +10,9 @@ import { formatDuration } from '@/lib/analytics/hrZones'
 import { SportIcon } from '@/components/ui/SportIcon'
 import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 import { StrengthSubtypeSelector } from './StrengthSubtypeSelector'
+import { SportTagSelector } from './SportTagSelector'
+import { IntensityEditor } from './IntensityEditor'
+import { IntervalSetupModal } from './IntervalSetupModal'
 import { RPEInput } from './RPEInput'
 import { LactateInput } from './LactateInput'
 
@@ -43,6 +46,7 @@ export function ActivityPreviewModal({ activity, onClose, onExpand, isCoach = fa
   const [hidden, setHidden] = useState(activity.hidden)
   const [savingHidden, setSavingHidden] = useState(false)
   const [customTag, setCustomTag] = useState<string | null>(activity.custom_sport_tag)
+  const [showIntervalModal, setShowIntervalModal] = useState(false)
 
   // Coach comment state
   const [commentValue, setCommentValue] = useState(activity.coach_comment ?? '')
@@ -97,6 +101,7 @@ export function ActivityPreviewModal({ activity, onClose, onExpand, isCoach = fa
 
   const color = getSportColor(activity, customTag)
   const isStrength = effectiveSportKey(activity) === 'Strength' || effectiveSportKey(activity) === 'strength_basic'
+  const isSkiing = activity.sport_type === 'NordicSki' || activity.sport_type === 'BackcountrySki'
 
   async function handleNoteBlur() {
     setSavingNote(true)
@@ -166,6 +171,30 @@ export function ActivityPreviewModal({ activity, onClose, onExpand, isCoach = fa
             sportType={activity.sport_type}
             onChanged={(tag) => setCustomTag(tag)}
           />
+        )}
+
+        {/* Skiing subtype selector */}
+        {isSkiing && (
+          <SportTagSelector
+            activityId={activity.id}
+            currentTag={customTag}
+            sportType={activity.sport_type}
+            onChanged={(tag) => setCustomTag(tag)}
+          />
+        )}
+
+        {/* Intensity */}
+        {!isStrength && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1.5 px-1">Intensity</p>
+            <IntensityEditor
+              activityId={activity.id}
+              initialValue={activity.intensity_type}
+              onChanged={(val) => {
+                if (val === 'interval') setShowIntervalModal(true)
+              }}
+            />
+          </div>
         )}
 
         {/* Duration */}
@@ -301,6 +330,13 @@ export function ActivityPreviewModal({ activity, onClose, onExpand, isCoach = fa
           lactate !== null
             ? <LactateInput activityId={activity.id} initialValues={lactate} />
             : <p className="text-xs text-gray-300 px-1">Loading lactate…</p>
+        )}
+
+        {showIntervalModal && (
+          <IntervalSetupModal
+            activityId={activity.id}
+            onClose={() => setShowIntervalModal(false)}
+          />
         )}
 
         {/* Footer actions */}

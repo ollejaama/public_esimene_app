@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 
 interface IntensityBreakdownProps {
   activities: Activity[]
+  intervalZoneSummary?: { zone: string; bookedSecs: number; actualSecs: number }[]
 }
 
 type CategoryType = 'regular' | 'interval' | 'speed' | 'competition' | 'strength'
@@ -33,7 +34,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export function IntensityBreakdown({ activities }: IntensityBreakdownProps) {
+export function IntensityBreakdown({ activities, intervalZoneSummary = [] }: IntensityBreakdownProps) {
   const [selected, setSelected] = useState<CategoryType | null>(null)
 
   const nonStrength = activities.filter((a) => {
@@ -91,7 +92,7 @@ export function IntensityBreakdown({ activities }: IntensityBreakdownProps) {
             {filtered.length === 0 ? (
               <p className="text-sm text-gray-400">No {CATEGORY_LABELS[selected].toLowerCase()} sessions in this period.</p>
             ) : (
-              <div className="space-y-1 max-h-96 overflow-y-auto">
+              <div className="space-y-1 max-h-72 overflow-y-auto">
                 {filtered.map((a) => (
                   <Link
                     key={a.id}
@@ -104,6 +105,30 @@ export function IntensityBreakdown({ activities }: IntensityBreakdownProps) {
                     <span className="text-xs text-gray-500 flex-shrink-0">{formatDuration(effectiveDuration(a))}</span>
                   </Link>
                 ))}
+              </div>
+            )}
+
+            {selected === 'interval' && intervalZoneSummary.length > 0 && (
+              <div className="mt-5 pt-4 border-t border-[#f0f0f0]">
+                <p className="text-xs font-medium text-gray-500 mb-2">Zone breakdown</p>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-gray-400">
+                      <th className="text-left pb-1 font-normal">Zone</th>
+                      <th className="text-right pb-1 font-normal">Booked</th>
+                      <th className="text-right pb-1 font-normal">Actual</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#f9f9f9]">
+                    {intervalZoneSummary.map(({ zone, bookedSecs, actualSecs }) => (
+                      <tr key={zone}>
+                        <td className="py-1 text-gray-700 font-medium">{zone}</td>
+                        <td className="py-1 text-right font-mono tabular-nums text-gray-600">{formatDuration(bookedSecs)}</td>
+                        <td className="py-1 text-right font-mono tabular-nums text-gray-600">{formatDuration(actualSecs)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

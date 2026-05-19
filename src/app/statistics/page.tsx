@@ -10,15 +10,14 @@ import { IntensityBreakdown } from '@/components/statistics/IntensityBreakdown'
 import { RestDaysWidget } from '@/components/statistics/RestDaysWidget'
 import { RPEWidget } from '@/components/statistics/RPEWidget'
 import { IllnessWidget } from '@/components/statistics/IllnessWidget'
-import { DecouplingWidget } from '@/components/statistics/DecouplingWidget'
 import { LactateChart } from '@/components/statistics/LactateChart'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { HRZoneSettings } from '@/lib/supabase/types'
 import { aggregateWeek } from '@/lib/analytics/weekSummary'
-import { zoneSecondsToRows } from '@/lib/analytics/hrZones'
+import { zoneSecondsToRows, computeHRZoneSeconds } from '@/lib/analytics/hrZones'
 import { computeZoneProgression } from '@/lib/analytics/zoneProgression'
-import { effectiveContributionSeconds } from '@/lib/activity'
+import { effectiveContributionSeconds, effectiveSportKey } from '@/lib/activity'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -160,31 +159,80 @@ export default async function StatisticsPage({
     zones.rest_day_threshold_minutes === 0 ? v === 0 : v < thresholdSeconds
   ).length
 
-  // Lactate daily averages (season view only)
-  let lactateData: { date: string; avg_mmol: number }[] = []
+  const restDayDates = Array.from(dayTotals.entries())
+    .filter(([, v]) => zones.rest_day_threshold_minutes === 0 ? v === 0 : v < thresholdSeconds)
+    .map(([key]) => key)
+
+  // Lactate: average of per-activity averages + per-sport averages (season view only)
+  let lactateAvg: number | null = null
+  let lactateSessionCount = 0
+  let lactateBySport: { sportKey: string; avgMmol: number }[] = []
   if (range === 'season' && userSettingsData?.show_lactate) {
     const activityIds = (rangeActivities ?? []).map((a) => a.id)
     if (activityIds.length > 0) {
       const { data: lactateRows } = await db
         .from('lactate_measurements')
-        .select('value_mmol, activity_id, activities!inner(start_date)')
+        .select('value_mmol, activity_id')
         .in('activity_id', activityIds)
         .eq('user_id', session.userId)
       if (lactateRows && lactateRows.length > 0) {
-        const byDate = new Map<string, number[]>()
+        const byActivity = new Map<string, number[]>()
+        const sportLactate = new Map<string, { sum: number; count: number }>()
         for (const row of lactateRows) {
-          const dateKey = (row as any).activities?.start_date?.slice(0, 10)
-          if (!dateKey) continue
-          const arr = byDate.get(dateKey) ?? []
+          const arr = byActivity.get(row.activity_id) ?? []
           arr.push(row.value_mmol)
-          byDate.set(dateKey, arr)
+          byActivity.set(row.activity_id, arr)
+          const matchedActivity = (rangeActivities ?? []).find((a) => a.id === row.activity_id)
+          if (matchedActivity) {
+            const sportKey = effectiveSportKey(matchedActivity)
+            const entry = sportLactate.get(sportKey) ?? { sum: 0, count: 0 }
+            sportLactate.set(sportKey, { sum: entry.sum + row.value_mmol, count: entry.count + 1 })
+          }
         }
-        lactateData = Array.from(byDate.entries())
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([date, vals]) => ({ date, avg_mmol: vals.reduce((s, v) => s + v, 0) / vals.length }))
+        const activityAvgs = Array.from(byActivity.values()).map((vals) => vals.reduce((s, v) => s + v, 0) / vals.length)
+        lactateAvg = activityAvgs.reduce((s, v) => s + v, 0) / activityAvgs.length
+        lactateSessionCount = byActivity.size
+        lactateBySport = Array.from(sportLactate.entries())
+          .map(([sportKey, { sum, count }]) => ({ sportKey, avgMmol: sum / count }))
       }
     }
   }
+
+  // Interval sets: fetch for interval activities to compute booked vs actual zone summary
+  const intervalActivityIds = (rangeActivities ?? []).filter((a) => a.intensity_type === 'interval').map((a) => a.id)
+  const { data: intervalSetsRaw } = intervalActivityIds.length > 0
+    ? await db.from('interval_sets').select('*').in('activity_id', intervalActivityIds).eq('user_id', session.userId)
+    : { data: [] as Array<{ activity_id: string; reps: number; duration_secs: number; zone: string }> }
+
+  const bookedZones: Record<string, number> = { I2: 0, I3: 0, I4: 0, I5: 0 }
+  for (const s of intervalSetsRaw ?? []) {
+    const total = s.reps * s.duration_secs
+    if (s.zone === 'Progressive') {
+      bookedZones.I2 += total / 4; bookedZones.I3 += total / 4
+      bookedZones.I4 += total / 4; bookedZones.I5 += total / 4
+    } else {
+      bookedZones[s.zone] = (bookedZones[s.zone] ?? 0) + total
+    }
+  }
+
+  // Actual zone seconds for interval activities from HR streams
+  const actualZones: Record<string, number> = { I2: 0, I3: 0, I4: 0, I5: 0 }
+  for (const actId of intervalActivityIds) {
+    const hrStream = streamMap.get(actId)
+    if (!hrStream) continue
+    const act = (rangeActivities ?? []).find((a) => a.id === actId)
+    if (!act) continue
+    const actSecs = act.moving_time ?? act.elapsed_time
+    const zs = computeHRZoneSeconds(hrStream, zones, actSecs)
+    actualZones.I2 += zs.z2
+    actualZones.I3 += zs.z3
+    actualZones.I4 += zs.z4
+    actualZones.I5 += zs.z5
+  }
+
+  const intervalZoneSummary = (['I2', 'I3', 'I4', 'I5'] as const)
+    .filter((z) => bookedZones[z] > 0 || actualZones[z] > 0)
+    .map((zone) => ({ zone, bookedSecs: bookedZones[zone], actualSecs: actualZones[zone] }))
 
   // Season-only: previous season total for comparison
   let prevSeasonHours: number | null = null
@@ -275,13 +323,13 @@ export default async function StatisticsPage({
           </div>
         </div>
 
-        {/* Intensity breakdown + Rest days + Illness + Decoupling */}
+        {/* Intensity breakdown + Rest days + Illness */}
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-2 border border-[#e5e5e5] rounded-lg p-5">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
               Intensity Breakdown
             </h2>
-            <IntensityBreakdown activities={rangeActivities ?? []} />
+            <IntensityBreakdown activities={rangeActivities ?? []} intervalZoneSummary={intervalZoneSummary} />
           </div>
           <div className="space-y-4">
             <div className="border border-[#e5e5e5] rounded-lg p-5">
@@ -291,6 +339,7 @@ export default async function StatisticsPage({
               <RestDaysWidget
                 restDayCount={restDayCount}
                 thresholdMinutes={zones.rest_day_threshold_minutes}
+                restDayDates={restDayDates}
               />
             </div>
             <div className="border border-[#e5e5e5] rounded-lg p-5">
@@ -302,12 +351,6 @@ export default async function StatisticsPage({
                 start={start}
                 end={end}
               />
-            </div>
-            <div className="border border-[#e5e5e5] rounded-lg p-5">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                Aerobic Decoupling
-              </h2>
-              <DecouplingWidget activities={rangeActivities ?? []} />
             </div>
           </div>
         </div>
@@ -331,7 +374,7 @@ export default async function StatisticsPage({
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
               Lactate
             </h2>
-            <LactateChart data={lactateData} />
+            <LactateChart avg={lactateAvg} sessionCount={lactateSessionCount} lactateBySport={lactateBySport} />
           </div>
         )}
       </div>

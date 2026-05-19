@@ -14,6 +14,7 @@ import { HideToggle } from './HideToggle'
 interface ActivityStatsPanelProps {
   activity: Activity
   showDangerControls?: boolean
+  onIntensityChange?: (val: string) => void
 }
 
 function formatDistance(meters: number): string {
@@ -42,7 +43,7 @@ function formatDateFull(iso: string): string {
 
 interface Stat { label: string; value: string }
 
-export function ActivityStatsPanel({ activity, showDangerControls = true }: ActivityStatsPanelProps) {
+export function ActivityStatsPanel({ activity, showDangerControls = true, onIntensityChange }: ActivityStatsPanelProps) {
   const sportKey = effectiveSportKey(activity)
   const isStrength = sportKey === 'Strength' || sportKey === 'strength_basic'
   const isRunning = isRunningActivity(activity)
@@ -78,6 +79,7 @@ export function ActivityStatsPanel({ activity, showDangerControls = true }: Acti
         <IntensityEditor
           activityId={activity.id}
           initialValue={activity.intensity_type}
+          onChanged={onIntensityChange}
         />
       )}
 

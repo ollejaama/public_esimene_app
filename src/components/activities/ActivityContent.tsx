@@ -27,6 +27,7 @@ interface ActivityContentProps {
   elevationData?: number[] | null
   zoneBoundaries?: { zone1_max: number; zone2_max: number; zone3_max: number; zone4_max: number }
   showDangerControls?: boolean
+  onIntensityChange?: (val: string) => void
 }
 
 export function ActivityContent({
@@ -40,6 +41,7 @@ export function ActivityContent({
   elevationData,
   zoneBoundaries,
   showDangerControls = true,
+  onIntensityChange,
 }: ActivityContentProps) {
   const hasHR = zoneRows.some((z) => z.seconds > 0)
   const hrCovered = zoneRows.reduce((sum, z) => sum + z.seconds, 0)
@@ -82,7 +84,7 @@ export function ActivityContent({
       <div className="space-y-6">
         <div className="border border-[#e5e5e5] rounded-lg p-5">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Stats</h2>
-          <ActivityStatsPanel activity={activity} showDangerControls={showDangerControls} />
+          <ActivityStatsPanel activity={activity} showDangerControls={showDangerControls} onIntensityChange={onIntensityChange} />
         </div>
       </div>
     )
@@ -93,22 +95,7 @@ export function ActivityContent({
     <div className="space-y-6">
       <div className="border border-[#e5e5e5] rounded-lg p-5">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Stats</h2>
-        <ActivityStatsPanel activity={activity} showDangerControls={showDangerControls} />
-        {activity.decoupling_percent != null && (() => {
-          const d = activity.decoupling_percent!
-          const [bg, text, label] = d < 5
-            ? ['bg-green-50', 'text-green-700', 'Good aerobic efficiency']
-            : d <= 8
-            ? ['bg-yellow-50', 'text-yellow-700', 'Moderate decoupling']
-            : ['bg-red-50', 'text-red-700', 'Significant decoupling']
-          return (
-            <div className={`mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>
-              <span>{d.toFixed(1)}% decoupling</span>
-              <span className="opacity-60">·</span>
-              <span>{label}</span>
-            </div>
-          )
-        })()}
+        <ActivityStatsPanel activity={activity} showDangerControls={showDangerControls} onIntensityChange={onIntensityChange} />
       </div>
 
       {hasHR && (
