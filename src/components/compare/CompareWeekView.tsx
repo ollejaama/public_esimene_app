@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { PlannedActivity, Activity, IllnessLog, TrainingCamp, PlannedRestDay } from '@/lib/supabase/types'
 import { fmtDateObj } from '@/lib/planUtils'
 import { WeekNavigator } from '@/components/ui/WeekNavigator'
 import { ActivityModal } from '@/components/activities/ActivityModal'
-import { PlannedActivityPreviewModal } from '@/components/activities/PlannedActivityPreviewModal'
+import { PlanActivityModal } from '@/components/plan/PlanActivityModal'
 import { SPORT_COLORS, PLANNED_SPORT_COLOR_KEY, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { getActivityTitle, effectiveSportKey } from '@/lib/activity'
 import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
@@ -67,10 +68,27 @@ export function CompareWeekView({
   camps = [],
   restDays = [],
 }: CompareWeekViewProps) {
+  const router = useRouter()
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [selectedPlanned, setSelectedPlanned] = useState<PlannedActivity | null>(null)
+  const [selectedRestDayDate, setSelectedRestDayDate] = useState<string | null>(null)
 
   const restDaySet = new Set(restDays.map((r) => r.date))
+
+  function handleActivitySaved() {
+    setSelectedPlanned(null)
+    router.refresh()
+  }
+
+  async function handleToggleRestDay(isRest: boolean) {
+    const date = selectedRestDayDate
+    if (!date) return
+    if (!isRest) {
+      await fetch(`/api/planned-rest-days/${date}`, { method: 'DELETE' })
+    }
+    setSelectedRestDayDate(null)
+    router.refresh()
+  }
 
   function campsForDate(dateStr: string): TrainingCamp[] {
     return camps.filter((c) => c.start_date <= dateStr && c.end_date >= dateStr)
@@ -185,9 +203,12 @@ export function CompareWeekView({
               {/* Planned column */}
               <div className="space-y-1.5">
                 {isRestDay && (
-                  <span className="inline-flex items-center text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                  <button
+                    onClick={() => setSelectedRestDayDate(dateKey)}
+                    className="inline-flex items-center text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full hover:bg-gray-200 transition-colors"
+                  >
                     🌙 Rest
-                  </span>
+                  </button>
                 )}
                 {planned.length === 0 && !isRestDay ? (
                   <span className="text-xs text-gray-300">—</span>
@@ -274,9 +295,24 @@ export function CompareWeekView({
       />
 
       {selectedPlanned && (
-        <PlannedActivityPreviewModal
+        <PlanActivityModal
+          mode="edit"
+          date={selectedPlanned.date}
           activity={selectedPlanned}
+          initialTimeOfDay={selectedPlanned.time_of_day}
           onClose={() => setSelectedPlanned(null)}
+          onSaved={handleActivitySaved}
+        />
+      )}
+
+      {selectedRestDayDate && (
+        <PlanActivityModal
+          mode="add"
+          date={selectedRestDayDate}
+          initialIsRestDay={true}
+          onToggleRestDay={handleToggleRestDay}
+          onClose={() => setSelectedRestDayDate(null)}
+          onSaved={() => setSelectedRestDayDate(null)}
         />
       )}
     </>
