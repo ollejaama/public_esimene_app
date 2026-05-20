@@ -7,8 +7,8 @@ import { WeekNavigator } from '@/components/ui/WeekNavigator'
 import { PlanActivityModal } from './PlanActivityModal'
 import { CampModal } from './CampModal'
 import { SPORT_COLORS, PLANNED_SPORT_COLOR_KEY } from '@/lib/constants'
-import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 import { toDateStr, getSeasonYear, fmtDateDisplay } from '@/lib/planUtils'
+import { getISOWeek } from '@/lib/analytics/weekSummary'
 
 interface PlanWeekViewProps {
   plannedActivities: PlannedActivity[]
@@ -25,10 +25,10 @@ function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-function formatDurationMinutes(minutes: number): string {
+function fmtMins(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
-  if (h > 0 && m > 0) return `${h}h ${m}m`
+  if (h > 0 && m > 0) return `${h}h${String(m).padStart(2, '0')}`
   if (h > 0) return `${h}h`
   return `${m}m`
 }
@@ -51,14 +51,12 @@ export function PlanWeekView({ plannedActivities, camps, restDays, weekStart, we
   const [campModal, setCampModal] = useState<{ mode: 'add' | 'edit'; camp?: TrainingCamp } | null>(null)
   const [restDaySet, setRestDaySet] = useState<Set<string>>(new Set(restDays.map((r) => r.date)))
 
-  // Build a map: dateKey → PlannedActivity[]
   const activityMap = new Map<string, PlannedActivity[]>()
   for (const a of plannedActivities) {
     const existing = activityMap.get(a.date) ?? []
     activityMap.set(a.date, [...existing, a])
   }
 
-  // Build the 7 days of the week
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart)
     d.setDate(weekStart.getDate() + i)
@@ -77,7 +75,6 @@ export function PlanWeekView({ plannedActivities, camps, restDays, weekStart, we
 
   async function toggleRestDay(dateKey: string) {
     const isRest = restDaySet.has(dateKey)
-    // Optimistic update
     setRestDaySet((prev) => {
       const next = new Set(prev)
       if (isRest) next.delete(dateKey)
@@ -95,7 +92,6 @@ export function PlanWeekView({ plannedActivities, camps, restDays, weekStart, we
         })
       }
     } catch {
-      // Revert on failure
       setRestDaySet((prev) => {
         const next = new Set(prev)
         if (isRest) next.add(dateKey)
@@ -105,89 +101,78 @@ export function PlanWeekView({ plannedActivities, camps, restDays, weekStart, we
     }
   }
 
-  // Date range label: "11 May, Mon → 17 May, Sun"
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekStart.getDate() + 6)
-
-  // Camps overlapping this week
   const weekEndStr = toDateStr(weekEnd)
   const weekStartStr = toDateStr(weekStart)
   const overlappingCamps = camps.filter((c) => c.start_date <= weekEndStr && c.end_date >= weekStartStr)
 
-  function fmtDay(d: Date) {
-    const dd = String(d.getDate()).padStart(2, '0')
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const yyyy = d.getFullYear()
-    const wd = d.toLocaleString('en-GB', { weekday: 'short' })
-    return `${dd}/${mm}/${yyyy} ${wd}`
-  }
-  const dateRangeLabel = `${fmtDay(weekStart)} → ${fmtDay(weekEnd)}`
-
-  // Total planned minutes this week
   const totalMinutes = plannedActivities.reduce((sum, a) => sum + a.duration_minutes, 0)
+
+  const now = new Date()
+  const { week: nowWeek, year: nowYear } = getISOWeek(now)
 
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">Plan</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Week {week} — {dateRangeLabel}</p>
-          </div>
-          {/* View tabs */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 text-xs">
-            <button
-              onClick={() => router.push(`/plan?view=season&year=${getSeasonYear(weekStart)}`)}
-              className="px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Season
-            </button>
-            <button
-              onClick={() => router.push(`/plan?view=month&month=${weekStart.getMonth() + 1}&year=${weekStart.getFullYear()}`)}
-              className="px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Month
-            </button>
-            <span className="px-3 py-1.5 rounded-md bg-white shadow-sm font-semibold text-gray-900">Week</span>
-          </div>
+      <div className="flex items-end justify-between mb-5">
+        <div>
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Chapter III · planning</p>
+          <h1 className="font-serif text-[48px] tracking-[-0.03em] leading-[1.05] text-atlas-ink mt-1">
+            Week {week}
+          </h1>
+          <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">
+            {weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – {weekEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </p>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setCampModal({ mode: 'add' })}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
-          >
-            <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Add camp
-          </button>
-          <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end gap-2">
+          {/* View tabs */}
+          <div className="flex gap-1.5">
+            {[
+              { label: 'Season', onClick: () => router.push(`/plan?view=season&year=${getSeasonYear(weekStart)}`) },
+              { label: 'Month', onClick: () => router.push(`/plan?view=month&month=${weekStart.getMonth() + 1}&year=${weekStart.getFullYear()}`) },
+              { label: 'Week', onClick: () => {} },
+            ].map(({ label, onClick }) => {
+              const active = label === 'Week'
+              return (
+                <button key={label} onClick={onClick}
+                  className={`font-mono text-[10px] tracking-[0.12em] uppercase px-3 py-[5px] border transition-colors ${active ? 'bg-atlas-selected text-atlas-selectedFg border-atlas-selected' : 'bg-transparent text-atlas-ink border-atlas-rule hover:border-atlas-muted'}`}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          <div className="flex items-center gap-2">
             <WeekNavigator week={week} year={year} basePath="/plan" />
             {totalMinutes > 0 ? (
-              <span className="text-xs text-gray-500">{formatDurationMinutes(totalMinutes)} planned</span>
+              <span className="font-mono text-[10px] tracking-[0.1em] text-atlas-muted">{fmtMins(totalMinutes)} planned</span>
             ) : (
-              <span className="text-xs text-gray-300">No sessions planned</span>
+              <span className="font-mono text-[10px] text-atlas-faint">no sessions planned</span>
             )}
           </div>
+          <button
+            onClick={() => setCampModal({ mode: 'add' })}
+            className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted border border-atlas-rule px-3 py-[5px] hover:border-atlas-muted hover:text-atlas-ink transition-colors"
+          >
+            + add camp
+          </button>
         </div>
       </div>
 
       {/* Camp banner */}
       {overlappingCamps.length > 0 && (
-        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-50 border border-blue-100">
-          <span className="text-sm">⛺</span>
+        <div className="mb-4 flex items-center gap-2 border border-atlas-rule px-4 py-2.5 bg-atlas-panel">
+          <span className="font-mono text-[10px] text-atlas-muted">⛺</span>
           <div className="flex flex-wrap gap-2">
             {overlappingCamps.map((camp) => (
               <button
                 key={camp.id}
                 onClick={() => setCampModal({ mode: 'edit', camp })}
-                className="text-sm font-medium text-blue-700 hover:text-blue-900 transition-colors"
+                className="font-serif italic text-[13px] text-atlas-ink hover:text-atlas-accent transition-colors"
               >
                 {camp.name}
-                <span className="ml-1 text-xs text-blue-400 font-normal">
-                  ({fmtDateDisplay(camp.start_date)} – {fmtDateDisplay(camp.end_date)})
+                <span className="ml-1.5 font-mono text-[9px] not-italic text-atlas-faint">
+                  {fmtDateDisplay(camp.start_date)} – {fmtDateDisplay(camp.end_date)}
                 </span>
               </button>
             ))}
@@ -196,7 +181,10 @@ export function PlanWeekView({ plannedActivities, camps, restDays, weekStart, we
       )}
 
       {/* Week grid */}
-      <div className="grid grid-cols-7 gap-3">
+      <div
+        className="grid grid-cols-7 bg-atlas-panel"
+        style={{ borderTop: '1.5px solid var(--atlas-ink)', borderLeft: '1px solid var(--atlas-rule)' }}
+      >
         {days.map((day, i) => {
           const dateKey = toDateKey(day)
           const activities = activityMap.get(dateKey) ?? []
@@ -205,144 +193,68 @@ export function PlanWeekView({ plannedActivities, camps, restDays, weekStart, we
           const isToday = toDateKey(new Date()) === dateKey
           const isRest = restDaySet.has(dateKey)
           const inCamp = camps.some((c) => c.start_date <= dateKey && c.end_date >= dateKey)
-          const dayLabel = WEEKDAYS[i]
-          const dayNum = day.getDate()
-          const monthLabel = day.toLocaleString('en-GB', { month: 'short' })
+          const monthLabel = day.toLocaleString('en-GB', { month: 'short' }).toUpperCase()
 
           return (
             <div
               key={dateKey}
-              className={`rounded-lg p-3 flex flex-col min-h-[200px] shadow-sm border ${
-                isRest
-                  ? 'bg-gray-50 border-gray-200'
+              className="border-r border-b border-atlas-rule"
+              style={{
+                minHeight: 360,
+                padding: '14px 14px 18px',
+                backgroundColor: isToday
+                  ? 'rgba(138,46,46,0.05)'
                   : inCamp
-                  ? 'bg-blue-50 border-blue-100'
-                  : 'bg-white border-[#e5e5e5]'
-              }`}
+                  ? 'rgba(58,125,74,0.05)'
+                  : 'transparent',
+              }}
             >
               {/* Day header */}
-              <div className="mb-3">
-                <div className="flex items-start justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    {dayLabel}
-                  </span>
-                  {isRest && (
-                    <span className="text-[9px] font-medium text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">REST</span>
-                  )}
-                </div>
-                <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className={`text-sm font-semibold ${isToday ? 'text-gray-900 underline' : 'text-gray-700'}`}>
-                    {dayNum}
-                  </span>
-                  <span className="text-xs text-gray-400">{monthLabel}</span>
-                </div>
+              <div className="pb-2 mb-3 border-b border-atlas-rule">
+                <p className="font-mono text-[9px] tracking-[0.25em] uppercase text-atlas-faint">{WEEKDAYS[i]}</p>
+                <p className={`font-serif text-[32px] tracking-[-0.02em] leading-none mt-0.5 ${isToday ? 'italic text-atlas-accent' : 'text-atlas-ink'}`}>
+                  {day.getDate()}
+                </p>
+                <p className="font-mono text-[9px] tracking-[0.1em] text-atlas-muted mt-0.5">{monthLabel}</p>
               </div>
 
-              {/* Morning section */}
-              <div className="flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-300 mb-1">☀ Morning</p>
-                <div className="space-y-1 mb-1.5">
-                  {morning.map((a) => {
-                    const color = a.intensity_type === 'interval' ? '#ef4444' : getSportColor(a.sport_type)
-                    const isComp = a.intensity_type === 'competition'
-                    return (
-                      <button
-                        key={a.id}
-                        onClick={() => setModal({ mode: 'edit', date: dateKey, activity: a, timeOfDay: 'morning' })}
-                        className="w-full text-left"
-                      >
-                        {isComp ? (
-                          <span className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-bold hover:opacity-80 transition-opacity bg-amber-400 text-white border border-amber-500 shadow-sm">
-                            <span className="shrink-0">★</span>
-                            <span className="truncate">{a.sport_type}</span>
-                            <span className="ml-auto shrink-0 opacity-90">{formatDurationMinutes(a.duration_minutes)}</span>
-                          </span>
-                        ) : (
-                          <span
-                            className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity"
-                            style={{ backgroundColor: `${color}30`, color }}
-                          >
-                            <span className="truncate">{a.sport_type}</span>
-                            {(a.intensity_type === 'interval' || a.intensity_type === 'speed') && (
-                              <ActivityTypeBadge intensityType={a.intensity_type} />
-                            )}
-                            <span className="ml-auto shrink-0 opacity-70">{formatDurationMinutes(a.duration_minutes)}</span>
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
+              {/* Morning */}
+              <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-1.5">☀ Morning</p>
+              <div className="mb-3">
+                {morning.length === 0 && (
+                  <p className="font-serif italic text-[12px] text-atlas-faint mb-1.5">—</p>
+                )}
+                {morning.map((a) => <PlanPill key={a.id} a={a} onClick={() => setModal({ mode: 'edit', date: dateKey, activity: a, timeOfDay: 'morning' })} />)}
                 <button
                   onClick={() => setModal({ mode: 'add', date: dateKey, timeOfDay: 'morning' })}
-                  className="text-[10px] text-gray-300 hover:text-gray-600 transition-colors flex items-center gap-0.5"
+                  className="w-full font-mono text-[10px] tracking-[0.1em] text-atlas-faint border border-dashed border-atlas-rule hover:border-atlas-muted hover:text-atlas-muted transition-colors py-1 mt-0.5"
                 >
-                  <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
-                  Add
+                  + add
                 </button>
               </div>
 
-              {/* Divider */}
-              <div className="border-t border-[#f0f0f0] my-2" />
-
-              {/* Evening section */}
-              <div className="flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-300 mb-1">☽ Evening</p>
-                <div className="space-y-1 mb-1.5">
-                  {evening.map((a) => {
-                    const color = a.intensity_type === 'interval' ? '#ef4444' : getSportColor(a.sport_type)
-                    const isComp = a.intensity_type === 'competition'
-                    return (
-                      <button
-                        key={a.id}
-                        onClick={() => setModal({ mode: 'edit', date: dateKey, activity: a, timeOfDay: 'evening' })}
-                        className="w-full text-left"
-                      >
-                        {isComp ? (
-                          <span className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-bold hover:opacity-80 transition-opacity bg-amber-400 text-white border border-amber-500 shadow-sm">
-                            <span className="shrink-0">★</span>
-                            <span className="truncate">{a.sport_type}</span>
-                            <span className="ml-auto shrink-0 opacity-90">{formatDurationMinutes(a.duration_minutes)}</span>
-                          </span>
-                        ) : (
-                          <span
-                            className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity"
-                            style={{ backgroundColor: `${color}30`, color }}
-                          >
-                            <span className="truncate">{a.sport_type}</span>
-                            {(a.intensity_type === 'interval' || a.intensity_type === 'speed') && (
-                              <ActivityTypeBadge intensityType={a.intensity_type} />
-                            )}
-                            <span className="ml-auto shrink-0 opacity-70">{formatDurationMinutes(a.duration_minutes)}</span>
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
+              {/* Evening */}
+              <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-1.5">☽ Evening</p>
+              <div className="mb-3">
+                {evening.length === 0 && (
+                  <p className="font-serif italic text-[12px] text-atlas-faint mb-1.5">—</p>
+                )}
+                {evening.map((a) => <PlanPill key={a.id} a={a} onClick={() => setModal({ mode: 'edit', date: dateKey, activity: a, timeOfDay: 'evening' })} />)}
                 <button
                   onClick={() => setModal({ mode: 'add', date: dateKey, timeOfDay: 'evening' })}
-                  className="text-[10px] text-gray-300 hover:text-gray-600 transition-colors flex items-center gap-0.5"
+                  className="w-full font-mono text-[10px] tracking-[0.1em] text-atlas-faint border border-dashed border-atlas-rule hover:border-atlas-muted hover:text-atlas-muted transition-colors py-1 mt-0.5"
                 >
-                  <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
-                  Add
+                  + add
                 </button>
               </div>
 
               {/* Rest day toggle */}
-              <div className="border-t border-[#f0f0f0] mt-2 pt-2">
+              <div className="border-t border-atlas-rule mt-auto pt-2">
                 <button
                   onClick={() => toggleRestDay(dateKey)}
-                  className={`flex items-center gap-1.5 text-[10px] transition-colors ${
-                    isRest ? 'text-gray-500 font-medium' : 'text-gray-300 hover:text-gray-500'
-                  }`}
+                  className={`font-mono text-[9px] tracking-[0.1em] uppercase transition-colors ${isRest ? 'text-atlas-muted' : 'text-atlas-faint hover:text-atlas-muted'}`}
                 >
-                  <span>{isRest ? '🌙' : '○'}</span>
-                  <span>Rest day</span>
+                  {isRest ? '🌙 rest day' : '○ rest day'}
                 </button>
               </div>
             </div>
@@ -371,5 +283,35 @@ export function PlanWeekView({ plannedActivities, camps, restDays, weekStart, we
         />
       )}
     </>
+  )
+}
+
+function PlanPill({ a, onClick }: { a: PlannedActivity; onClick: () => void }) {
+  const isComp = a.intensity_type === 'competition'
+  const isInterval = a.intensity_type === 'interval'
+  const color = getSportColor(a.sport_type)
+  const dur = fmtMins(a.duration_minutes)
+
+  return (
+    <button onClick={onClick} className="w-full text-left mb-1.5 hover:opacity-80 transition-opacity">
+      <span
+        className={`flex items-baseline justify-between border-l-2 leading-[1.2] ${
+          isComp ? 'atlas-pill-competition border-l-[#b8860b]' : isInterval ? 'atlas-pill-interval border-l-atlas-accent' : ''
+        }`}
+        style={{
+          padding: '5px 8px 6px',
+          ...(!isComp && !isInterval ? { backgroundColor: `${color}1f`, borderLeftColor: color } : {}),
+        }}
+      >
+        <span className={`font-serif italic text-[13px] ${isComp ? 'text-[#b8860b]' : isInterval ? 'text-atlas-accent' : ''}`}
+          style={!isComp && !isInterval ? { color } : {}}>
+          {isComp ? '★ Race' : a.sport_type}
+        </span>
+        <span className="font-mono text-[10px] text-atlas-muted ml-2 shrink-0">{dur}</span>
+      </span>
+      {a.description && (
+        <p className="font-mono text-[10px] text-atlas-muted mt-0.5 pl-2 leading-tight">{a.description}</p>
+      )}
+    </button>
   )
 }

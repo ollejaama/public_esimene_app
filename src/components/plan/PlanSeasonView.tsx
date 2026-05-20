@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PlannedActivity, TrainingCamp, PlannedRestDay } from '@/lib/supabase/types'
 import { getISOWeek } from '@/lib/analytics/weekSummary'
-import { toDateStr, seasonLabel, getSeasonYear } from '@/lib/planUtils'
+import { toDateStr, seasonLabel } from '@/lib/planUtils'
 import { CampModal } from './CampModal'
 
 interface PlanSeasonViewProps {
@@ -73,69 +73,58 @@ export function PlanSeasonView({ activities, camps, restDays, seasonYear }: Plan
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-semibold text-gray-900">Plan</h1>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 text-xs">
-            <span className="px-3 py-1.5 rounded-md bg-white shadow-sm font-semibold text-gray-900">Season</span>
-            <button
-              onClick={() => router.push(`/plan?view=month&month=5&year=${seasonYear}`)}
-              className="px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Month
-            </button>
-            <button
-              onClick={() => router.push(`/plan?view=week&week=${nowWeek}&year=${nowYear}`)}
-              className="px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Week
-            </button>
-          </div>
+      <div className="flex items-end justify-between mb-5">
+        <div>
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Chapter III · planning</p>
+          <h1 className="font-serif text-[56px] tracking-[-0.03em] leading-[1.05] text-atlas-ink mt-1.5">
+            Season<span className="italic text-atlas-accent"> {seasonYear}/{String(seasonYear + 1).slice(-2)}</span>
+          </h1>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setCampModal({ mode: 'add' })}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
-          >
-            <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Add camp
-          </button>
-
+        <div className="flex flex-col items-end gap-2">
+          {/* View tabs */}
+          <div className="flex gap-1.5">
+            {[
+              { label: 'Season', onClick: () => {} },
+              { label: 'Month', onClick: () => router.push(`/plan?view=month&month=5&year=${seasonYear}`) },
+              { label: 'Week', onClick: () => router.push(`/plan?view=week&week=${nowWeek}&year=${nowYear}`) },
+            ].map(({ label, onClick }) => {
+              const active = label === 'Season'
+              return (
+                <button key={label} onClick={onClick}
+                  className={`font-mono text-[10px] tracking-[0.12em] uppercase px-3 py-[5px] border transition-colors ${active ? 'bg-atlas-selected text-atlas-selectedFg border-atlas-selected' : 'bg-transparent text-atlas-ink border-atlas-rule hover:border-atlas-muted'}`}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          {/* Season nav */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push(`/plan?view=season&year=${seasonYear - 1}`)}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
-            >
-              <svg className="w-4 h-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </button>
-            <span className="text-sm font-medium text-gray-700 min-w-[50px] text-center">
+            <button onClick={() => router.push(`/plan?view=season&year=${seasonYear - 1}`)}
+              className="font-mono text-[11px] w-7 h-7 flex items-center justify-center border border-atlas-rule text-atlas-muted hover:text-atlas-ink hover:border-atlas-muted transition-colors">←</button>
+            <span className="font-serif italic text-[13px] text-atlas-muted min-w-[60px] text-center">
               {seasonLabel(seasonYear)}
             </span>
-            <button
-              onClick={() => router.push(`/plan?view=season&year=${seasonYear + 1}`)}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
-            >
-              <svg className="w-4 h-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-              </svg>
-            </button>
+            <button onClick={() => router.push(`/plan?view=season&year=${seasonYear + 1}`)}
+              className="font-mono text-[11px] w-7 h-7 flex items-center justify-center border border-atlas-rule text-atlas-muted hover:text-atlas-ink hover:border-atlas-muted transition-colors">→</button>
           </div>
+          <button
+            onClick={() => setCampModal({ mode: 'add' })}
+            className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted border border-atlas-rule px-3 py-[5px] hover:border-atlas-muted hover:text-atlas-ink transition-colors"
+          >
+            + add camp
+          </button>
         </div>
       </div>
 
-      {/* Camp legend (if any camps) */}
+      {/* Camp legend */}
       {camps.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-5">
           {camps.map((camp) => (
             <button
               key={camp.id}
               onClick={() => setCampModal({ mode: 'edit', camp })}
-              className="flex items-center gap-1.5 text-[11px] font-medium text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors"
+              className="font-mono text-[10px] tracking-[0.08em] uppercase px-2.5 py-1 border border-atlas-rule hover:border-atlas-muted transition-colors"
+              style={{ color: '#3a7d4a' }}
             >
               ⛺ {camp.name}
             </button>
@@ -143,21 +132,21 @@ export function PlanSeasonView({ activities, camps, restDays, seasonYear }: Plan
         </div>
       )}
 
-      {/* 4 × 3 month dot grid */}
-      <div className="grid grid-cols-4 gap-x-6 gap-y-8">
+      {/* 4 × 3 mini month grid */}
+      <div className="grid grid-cols-4 gap-x-8 gap-y-8">
         {months.map(({ year, month }) => {
           const cells = getMonthCells(year, month)
 
           return (
             <div key={`${year}-${month}`}>
-              <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                {MONTH_NAMES[month]} {year}
+              <p className="font-serif text-[15px] tracking-[-0.01em] text-atlas-ink mb-1.5">
+                {MONTH_NAMES[month]}<span className="font-mono text-[10px] text-atlas-faint ml-1.5">{year}</span>
               </p>
 
               {/* Day-of-week header */}
-              <div className="grid grid-cols-7 mb-0.5">
+              <div className="grid grid-cols-7 mb-1">
                 {DAY_INITIALS.map((d, i) => (
-                  <div key={i} className="text-center text-[8px] text-gray-300 font-medium leading-none pb-0.5">
+                  <div key={i} className="text-center font-mono text-[8px] text-atlas-faint leading-none pb-0.5">
                     {d}
                   </div>
                 ))}
@@ -170,14 +159,13 @@ export function PlanSeasonView({ activities, camps, restDays, seasonYear }: Plan
                   const inMonth = day.getMonth() === month
                   const isToday = dateStr === todayStr
 
-                  if (!inMonth) {
-                    return <div key={dateStr} className="w-full aspect-square" />
-                  }
+                  if (!inMonth) return <div key={dateStr} className="w-full aspect-square" />
 
                   const dayCamps = campsForDate(dateStr)
                   const dayActivities = activityMap.get(dateStr) ?? []
                   const isRest = restDaySet.has(dateStr)
                   const hasComp = dayActivities.some((a) => a.intensity_type === 'competition')
+                  const hasInterval = dayActivities.some((a) => a.intensity_type === 'interval')
                   const hasActivities = dayActivities.length > 0
                   const inCamp = dayCamps.length > 0
                   const { week, year: weekYear } = getISOWeek(day)
@@ -187,18 +175,19 @@ export function PlanSeasonView({ activities, camps, restDays, seasonYear }: Plan
                       key={dateStr}
                       onClick={() => router.push(`/plan?view=week&week=${week}&year=${weekYear}`)}
                       title={dateStr}
-                      className={`w-full aspect-square flex items-center justify-center rounded-sm transition-opacity hover:opacity-70 ${
-                        inCamp ? 'bg-blue-50' : ''
-                      } ${isToday ? 'ring-1 ring-blue-400 rounded' : ''}`}
+                      className={`w-full aspect-square flex items-center justify-center transition-opacity hover:opacity-60 ${isToday ? 'ring-1 ring-atlas-accent' : ''}`}
+                      style={inCamp ? { backgroundColor: 'rgba(58,125,74,0.12)' } : {}}
                     >
                       {hasComp ? (
-                        <span className="text-amber-400 leading-none" style={{ fontSize: '60%' }}>★</span>
+                        <span className="leading-none" style={{ fontSize: '55%', color: '#b8860b' }}>★</span>
+                      ) : hasInterval ? (
+                        <span className="w-2 h-2 block" style={{ backgroundColor: 'var(--atlas-accent)' }} />
                       ) : hasActivities ? (
-                        <span className={`w-2 h-2 rounded-full block ${inCamp ? 'bg-blue-400' : 'bg-gray-400'}`} />
+                        <span className="w-2 h-2 block" style={{ backgroundColor: inCamp ? '#3a7d4a' : 'var(--atlas-muted)' }} />
                       ) : isRest ? (
-                        <span className="w-1.5 h-1.5 rounded-full block border border-gray-300" />
+                        <span className="w-1.5 h-1.5 block border border-atlas-rule" />
                       ) : (
-                        <span className="w-1.5 h-1.5 rounded-full block bg-gray-100" />
+                        <span className="w-1.5 h-1.5 block" style={{ backgroundColor: 'var(--atlas-rule)' }} />
                       )}
                     </button>
                   )
