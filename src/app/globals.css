@@ -2,12 +2,114 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+:root,
+[data-atlas-theme="light"] {
+  --atlas-bg:          #f4ede0;
+  --atlas-panel:       #fbf7ee;
+  --atlas-ink:         #1a1815;
+  --atlas-muted:       #6d6354;
+  --atlas-faint:       #a89d8a;
+  --atlas-rule:        #d9cfba;
+  --atlas-accent:      #8a2e2e;
+  --atlas-accent-soft: #c46c6c;
+  --atlas-selected:    #524b3b;
+  --atlas-selected-fg: #f4ede0;
+  --atlas-z5:          #a23b2a;
+}
+
+[data-atlas-theme="dark"] {
+  --atlas-bg:          #1a1714;
+  --atlas-panel:       #22201c;
+  --atlas-ink:         #f0e9da;
+  --atlas-muted:       #a89d8a;
+  --atlas-faint:       #6d6354;
+  --atlas-rule:        #3a342c;
+  --atlas-accent:      #d96868;
+  --atlas-accent-soft: #d96868;
+  --atlas-selected:    #d4c8b0;
+  --atlas-selected-fg: #1a1714;
+  --atlas-z5:          #c84a3a;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  background-color: var(--atlas-bg);
+  color: var(--atlas-ink);
+}
+
+.atlas-nav-active {
+  background-color: rgba(138, 46, 46, 0.04);
+}
+[data-atlas-theme="dark"] .atlas-nav-active {
+  background-color: rgba(217, 104, 104, 0.08);
+}
+
+/* Calendar day cell — today tint */
+.atlas-today-bg {
+  background-color: rgba(138, 46, 46, 0.05);
+}
+[data-atlas-theme="dark"] .atlas-today-bg {
+  background-color: rgba(217, 104, 104, 0.06);
+}
+
+/* Activity pill variants */
+.atlas-pill-interval {
+  background-color: #f3dcdc;
+}
+[data-atlas-theme="dark"] .atlas-pill-interval {
+  background-color: #3a201f;
+}
+
+.atlas-pill-competition {
+  background-color: #f6e8c8;
+}
+[data-atlas-theme="dark"] .atlas-pill-competition {
+  background-color: #2e2510;
+}
+
+/* Modal */
+.atlas-modal-backdrop {
+  background-color: rgba(26, 24, 21, 0.18);
+}
+[data-atlas-theme="dark"] .atlas-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.32);
+}
+.atlas-modal-shadow {
+  box-shadow: 0 24px 64px rgba(26, 24, 21, 0.22), 0 2px 0 rgba(26, 24, 21, 0.03);
+}
+[data-atlas-theme="dark"] .atlas-modal-shadow {
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+/* Stat block (preview modal) */
+.atlas-stat-block {
+  background-color: #ece4d2;
+}
+[data-atlas-theme="dark"] .atlas-stat-block {
+  background-color: #2a261f;
+}
+
+/* Coach comment card */
+.atlas-coach-card {
+  background-color: rgba(138, 46, 46, 0.04);
+}
+[data-atlas-theme="dark"] .atlas-coach-card {
+  background-color: rgba(217, 104, 104, 0.06);
+}
+
+/* Intensity badge backgrounds */
+.atlas-badge-speed {
+  background-color: #f3ead0;
+  color: #c6a24a;
+  border-color: #c6a24a;
+}
+[data-atlas-theme="dark"] .atlas-badge-speed {
+  background-color: #332b18;
+}
+.atlas-badge-competition {
+  background-color: #f6e8c8;
+  color: #b8860b;
+  border-color: #b8860b;
+}
+[data-atlas-theme="dark"] .atlas-badge-competition {
+  background-color: #3d3220;
 }

@@ -36,38 +36,33 @@ export function SeasonalVolumeWidget({ currentHours, seasonStart, seasonEnd, pre
     : null
 
   return (
-    <div className="grid grid-cols-3 gap-4">
-      {/* So far */}
-      <div className="flex flex-col">
-        <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1">
+    <div className="grid grid-cols-3 gap-6">
+      <div>
+        <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted mb-1">
           {seasonComplete ? 'Season total' : 'So far'}
         </p>
-        <p className="text-xl font-semibold text-gray-800">{fmtH(currentHours)}</p>
+        <p className="font-serif text-[22px] tracking-[-0.02em] text-atlas-ink">{fmtH(currentHours)}</p>
         {!seasonComplete && (
-          <p className="text-[10px] text-gray-400 mt-0.5">{Math.round(avgHoursPerWeek * 10) / 10}h/week avg</p>
+          <p className="font-mono text-[9px] text-atlas-faint mt-0.5">{Math.round(avgHoursPerWeek * 10) / 10}h/week avg</p>
         )}
       </div>
 
-      {/* Projected */}
       {!seasonComplete && (
-        <div className="flex flex-col">
-          <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1">
-            Projected by Apr 30
-          </p>
-          <p className="text-xl font-semibold text-gray-500">~{fmtH(projectedTotal)}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">estimate</p>
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted mb-1">Projected by Apr 30</p>
+          <p className="font-serif text-[22px] tracking-[-0.02em] text-atlas-muted">~{fmtH(projectedTotal)}</p>
+          <p className="font-serif italic text-[12px] text-atlas-faint mt-0.5">estimate</p>
         </div>
       )}
 
-      {/* Previous season */}
       {prevSeasonHours != null && (
-        <div className="flex flex-col">
-          <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1">
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted mb-1">
             {seasonComplete ? 'vs last season' : 'Last season'}
           </p>
-          <p className="text-xl font-semibold text-gray-700">{fmtH(prevSeasonHours)}</p>
+          <p className="font-serif text-[22px] tracking-[-0.02em] text-atlas-ink">{fmtH(prevSeasonHours)}</p>
           {prevDelta != null && (
-            <p className={`text-[10px] mt-0.5 font-medium ${prevDelta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+            <p className={`font-mono text-[9px] mt-0.5 ${prevDelta >= 0 ? 'text-[#7a9c66]' : 'text-atlas-accent'}`}>
               {prevDelta >= 0 ? '+' : ''}{prevDelta}% {seasonComplete ? '' : 'projected'}
             </p>
           )}

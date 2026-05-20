@@ -8,9 +8,10 @@ interface ModalProps {
   children: React.ReactNode
   maxWidth?: string
   align?: 'top' | 'center'
+  hideCloseButton?: boolean
 }
 
-export function Modal({ open, onClose, children, maxWidth = 'max-w-2xl', align = 'top' }: ModalProps) {
+export function Modal({ open, onClose, children, maxWidth = 'max-w-2xl', align = 'top', hideCloseButton = false }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -25,19 +26,19 @@ export function Modal({ open, onClose, children, maxWidth = 'max-w-2xl', align =
   return (
     <div
       ref={overlayRef}
-      className={`fixed inset-0 z-50 flex ${align === 'center' ? 'items-center' : 'items-start'} justify-center overflow-y-auto bg-black/40 px-4 py-8`}
+      className={`fixed inset-0 z-50 flex ${align === 'center' ? 'items-center' : 'items-start'} justify-center overflow-y-auto atlas-modal-backdrop px-4 py-8`}
       onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div className={`relative bg-white rounded-xl w-full ${maxWidth} shadow-xl`}>
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          aria-label="Close"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        </button>
+      <div className={`relative bg-atlas-panel rounded-modal border border-atlas-rule atlas-modal-shadow w-full ${maxWidth}`}>
+        {!hideCloseButton && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center border border-atlas-rule text-atlas-muted hover:text-atlas-ink hover:border-atlas-muted font-mono text-sm leading-none transition-colors z-10"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        )}
         {children}
       </div>
     </div>

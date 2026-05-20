@@ -2,7 +2,7 @@
 
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell,
+  ResponsiveContainer,
 } from 'recharts'
 import { ZoneProgressionPoint } from '@/lib/analytics/zoneProgression'
 
@@ -18,12 +18,12 @@ const ZONE_KEYS = ['z0', 'z1', 'z2', 'z3', 'z4', 'z5'] as const
 type ZoneKey = typeof ZONE_KEYS[number]
 
 const ZONE_COLORS: Record<ZoneKey, string> = {
-  z0: '#94a3b8',
-  z1: '#4ade80',
-  z2: '#86efac',
-  z3: '#facc15',
-  z4: '#fb923c',
-  z5: '#ef4444',
+  z0: '#6b8aa3',
+  z1: '#9ab48a',
+  z2: '#7a9c66',
+  z3: '#c6a24a',
+  z4: '#c8703a',
+  z5: '#a23b2a',
 }
 
 function fmtHours(h: number): string {
@@ -76,18 +76,18 @@ function CustomTooltip({ active, payload, zoneNames }: any) {
   if (!pt || pt.totalHours === 0) return null
 
   return (
-    <div className="bg-white border border-[#e5e5e5] rounded-lg p-3 text-xs shadow-sm min-w-[160px]">
-      <p className="font-medium text-gray-700 mb-2">{pt.displayLabel}</p>
-      <p className="text-gray-400 mb-1.5">Total: {fmtHours(pt.totalHours)}</p>
-      <div className="border-t border-[#f0f0f0] pt-1.5 space-y-0.5">
+    <div className="bg-atlas-panel border border-atlas-rule" style={{ padding: '10px 12px', minWidth: 160 }}>
+      <p className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted mb-1">{pt.displayLabel}</p>
+      <p className="font-serif italic text-[13px] text-atlas-ink mb-1.5">{fmtHours(pt.totalHours)} total</p>
+      <div className="border-t border-atlas-rule pt-1.5 space-y-0.5">
         {ZONE_KEYS.map((k) => {
           const h = pt[k]
           if (!h || h < 0.001) return null
           return (
             <p key={k} className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: ZONE_COLORS[k] }} />
-              <span className="text-gray-500">{zoneNames[k]}:</span>
-              <span className="font-medium">{fmtHours(h)}</span>
+              <span className="w-2 h-2 flex-shrink-0" style={{ backgroundColor: ZONE_COLORS[k] }} />
+              <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-atlas-muted">{zoneNames[k]}</span>
+              <span className="font-mono text-[9px] text-atlas-ink ml-auto">{fmtHours(h)}</span>
             </p>
           )
         })}
@@ -99,25 +99,29 @@ function CustomTooltip({ active, payload, zoneNames }: any) {
 export function VolumeByZoneChart({ data, zoneNames, range }: VolumeByZoneChartProps) {
   const hasData = data.some((p) => p.totalHours > 0)
   if (!hasData) {
-    return <div className="h-52 flex items-center justify-center text-sm text-gray-400">No data</div>
+    return (
+      <div className="h-52 flex items-center justify-center font-serif italic text-[13px] text-atlas-faint">
+        No data
+      </div>
+    )
   }
 
   const chartData = toChartData(data, range)
 
   return (
-    <ResponsiveContainer width="100%" height={260}>
+    <ResponsiveContainer width="100%" height={240}>
       <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }} maxBarSize={32}>
-        <CartesianGrid vertical={false} stroke="#f0f0f0" />
+        <CartesianGrid vertical={false} stroke="var(--atlas-rule)" strokeDasharray="2 3" />
         <XAxis
           dataKey="displayLabel"
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.05em' }}
           axisLine={false}
           tickLine={false}
           interval={0}
         />
         <YAxis
           tickFormatter={(v) => v > 0 ? `${v}h` : ''}
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace' }}
           axisLine={false}
           tickLine={false}
           width={28}

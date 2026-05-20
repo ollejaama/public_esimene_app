@@ -12,7 +12,7 @@ export const SPORT_COLORS: Record<string, string> = {
   Other: '#e5e7eb',
 }
 
-export const HR_ZONE_COLORS = ['#4ade80', '#86efac', '#facc15', '#fb923c', '#ef4444']
+export const HR_ZONE_COLORS = ['#9ab48a', '#7a9c66', '#c6a24a', '#c8703a', '#a23b2a']
 
 // Maps Strava sport_type values to display categories
 export const SPORT_TYPE_MAP: Record<string, string> = {

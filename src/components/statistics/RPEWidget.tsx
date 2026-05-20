@@ -15,13 +15,12 @@ export function RPEWidget({ activities, scale }: RPEWidgetProps) {
   const withRpe = activities.filter((a) => a.rpe != null)
   if (withRpe.length === 0) {
     return (
-      <div className="flex flex-col items-center py-3 px-2">
-        <span className="text-xs text-gray-400">No RPE data</span>
-      </div>
+      <p className="font-serif italic text-[13px] text-atlas-faint">No RPE data recorded</p>
     )
   }
 
   const avg = withRpe.reduce((s, a) => s + a.rpe!, 0) / withRpe.length
+  const scaleMax = scale === 'rpe' ? 10 : 20
   const scaleLabel = scale === 'rpe' ? 'RPE (1–10)' : 'Borg (6–20)'
 
   const bySport = new Map<string, { sum: number; count: number }>()
@@ -33,36 +32,62 @@ export function RPEWidget({ activities, scale }: RPEWidgetProps) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="w-full text-left cursor-pointer">
-        <div className="flex items-end gap-2">
-          <span className="text-3xl font-bold text-gray-900 leading-none">{avg.toFixed(1)}</span>
-          <span className="text-xs text-gray-400 mb-0.5">{scaleLabel} avg · {withRpe.length} sessions</span>
+      <div className="grid gap-8" style={{ gridTemplateColumns: 'auto 1fr', alignItems: 'center' }}>
+        <button onClick={() => setOpen(true)} className="text-left" style={{ paddingRight: 32, borderRight: '1px solid var(--atlas-rule)', minWidth: 160 }}>
+          <div className="font-serif text-[88px] tracking-[-0.04em] leading-[0.95] text-atlas-ink">
+            {avg.toFixed(1)}
+          </div>
+          <p className="font-serif italic text-[14px] text-atlas-muted mt-1.5">average effort</p>
+          <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-atlas-faint mt-1">
+            across {withRpe.length} sessions
+          </p>
+        </button>
+
+        <div className="flex flex-col gap-1">
+          {Array.from(bySport.entries()).map(([sport, { sum, count }]) => {
+            const sportAvg = sum / count
+            const barPct = (sportAvg / scaleMax) * 100
+            return (
+              <div key={sport} className="grid gap-3 items-center py-1.5 border-b border-dotted border-atlas-rule"
+                style={{ gridTemplateColumns: '1.4fr 2fr auto auto' }}>
+                <span className="font-serif italic text-[14px] text-atlas-ink">{sport}</span>
+                <div className="h-1.5 atlas-stat-block relative">
+                  <div className="absolute inset-0" style={{ width: `${barPct}%`, backgroundColor: 'var(--atlas-accent)', opacity: 0.7 }} />
+                </div>
+                <span className="font-mono text-[10px] text-atlas-muted">{count} session{count !== 1 ? 's' : ''}</span>
+                <span className="font-mono text-[12px] text-atlas-ink font-semibold text-right min-w-[32px]">{sportAvg.toFixed(1)}</span>
+              </div>
+            )
+          })}
         </div>
-      </button>
+      </div>
 
       {open && (
-        <Modal open onClose={() => setOpen(false)} maxWidth="max-w-sm" align="center">
-          <div className="p-6">
-            <h2 className="text-base font-semibold text-gray-900 mb-1 pr-8">Effort Rating</h2>
-            <p className="text-xs text-gray-400 mb-5">
-              {scaleLabel} · avg {avg.toFixed(1)} across {withRpe.length} sessions
-            </p>
-
-            {bySport.size === 0 ? (
-              <p className="text-sm text-gray-400">No sessions with RPE data.</p>
-            ) : (
-              <div className="space-y-1">
-                {Array.from(bySport.entries()).map(([sport, { sum, count }]) => (
-                  <div key={sport} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-gray-50">
-                    <span className="text-sm text-gray-700">{sport}</span>
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span>{count} session{count !== 1 ? 's' : ''}</span>
-                      <span className="font-semibold text-gray-900 text-sm">{(sum / count).toFixed(1)}</span>
-                    </div>
-                  </div>
-                ))}
+        <Modal open onClose={() => setOpen(false)} maxWidth="max-w-sm" align="center" hideCloseButton>
+          <div className="flex items-start justify-between border-b border-atlas-rule bg-atlas-bg" style={{ padding: '16px 20px 14px' }}>
+            <div>
+              <h2 className="font-serif text-[20px] tracking-[-0.02em] text-atlas-ink">Effort Rating</h2>
+              <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">
+                {scaleLabel} · avg {avg.toFixed(1)} across {withRpe.length} sessions
+              </p>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="w-7 h-7 flex items-center justify-center border border-atlas-rule text-atlas-muted hover:text-atlas-ink hover:border-atlas-muted font-mono text-sm leading-none transition-colors"
+            >
+              ×
+            </button>
+          </div>
+          <div style={{ padding: '12px 20px 20px' }}>
+            {Array.from(bySport.entries()).map(([sport, { sum, count }]) => (
+              <div key={sport} className="flex items-center justify-between py-1.5 border-b border-dotted border-atlas-rule">
+                <span className="font-serif text-[14px] text-atlas-ink">{sport}</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[11px] text-atlas-muted">{count} session{count !== 1 ? 's' : ''}</span>
+                  <span className="font-mono text-[12px] text-atlas-ink font-semibold">{(sum / count).toFixed(1)}</span>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         </Modal>
       )}

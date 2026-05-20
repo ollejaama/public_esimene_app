@@ -1,8 +1,12 @@
 import { WeekSummary } from '@/lib/analytics/weekSummary'
 import { formatDuration } from '@/lib/analytics/hrZones'
-import { SPORT_BREAKDOWN_ROWS } from '@/lib/constants'
+import { SPORT_BREAKDOWN_ROWS, SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 
 const SKIING_KEYS = ['crosscountry_classic', 'cr_skate', 'rollerski_classic', 'rollerski_skate', 'treadmill_classic', 'treadmill_skate', 'Skiing']
+
+function getSportColor(key: string): string {
+  return SPORT_COLORS[CUSTOM_TAG_COLOR_KEY[key] ?? key] ?? SPORT_COLORS.Other
+}
 
 interface SportBreakdownTableProps {
   bySport: WeekSummary['bySport']
@@ -24,53 +28,54 @@ export function SportBreakdownTable({ bySport }: SportBreakdownTableProps) {
   const hasSkiing = skiingSeconds > 0
 
   if (rows.length === 0) {
-    return <p className="text-sm text-gray-400">No activities in this period.</p>
+    return <p className="font-serif italic text-[13px] text-atlas-faint">No activities in this period.</p>
   }
 
-  // Insert "Total skiing" after the last skiing row (before Strength)
   const skiingRowKeys = new Set(['crosscountry_classic', 'cr_skate', 'rollerski_classic', 'rollerski_skate', 'treadmill_classic', 'treadmill_skate', 'Skiing'])
   const lastSkiingIdx = rows.reduce((last, row, i) => skiingRowKeys.has(row.key) ? i : last, -1)
+  const maxSeconds = Math.max(...rows.map((r) => r.seconds))
 
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-xs text-gray-400 border-b border-[#f0f0f0]">
-          <th className="text-left pb-2 font-normal">Sport</th>
-          <th className="text-right pb-2 font-normal">Time</th>
-          <th className="text-right pb-2 font-normal">Sessions</th>
-          <th className="text-right pb-2 font-normal">Share</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-[#f9f9f9]">
-        {rows.map((row, i) => (
-          <>
-            <tr key={row.key}>
-              <td className="py-2 text-gray-700">{row.label}</td>
-              <td className="py-2 text-right font-mono text-xs tabular-nums">{formatDuration(row.seconds)}</td>
-              <td className="py-2 text-right text-gray-500">{row.sessions}</td>
-              <td className="py-2 text-right text-gray-400 text-xs">
-                {totalSeconds > 0 ? Math.round((row.seconds / totalSeconds) * 100) : 0}%
-              </td>
-            </tr>
+    <div>
+      {rows.map((row, i) => {
+        const color = getSportColor(row.key)
+        const pct = totalSeconds > 0 ? Math.round((row.seconds / totalSeconds) * 100) : 0
+        const barPct = maxSeconds > 0 ? (row.seconds / maxSeconds) * 100 : 0
+
+        return (
+          <div key={row.key}>
+            <div className="py-[9px] border-b border-dotted border-atlas-rule">
+              <div className="flex items-baseline justify-between mb-1.5">
+                <span className="font-serif text-[16px] leading-none flex items-center gap-2">
+                  <span className="w-[9px] h-[9px] flex-shrink-0 inline-block" style={{ backgroundColor: color }} />
+                  {row.label}
+                </span>
+                <span className="font-mono text-[11px] text-atlas-muted tracking-[0.05em]">
+                  {formatDuration(row.seconds)} · {pct}%
+                </span>
+              </div>
+              <div className="h-1 atlas-stat-block relative">
+                <div className="absolute inset-0" style={{ width: `${barPct}%`, backgroundColor: color, opacity: 0.85 }} />
+              </div>
+            </div>
             {i === lastSkiingIdx && hasSkiing && lastSkiingIdx >= 0 && (
-              <tr key="total-skiing" className="border-t border-[#efefef]">
-                <td className="py-2 pl-3 text-gray-500 text-xs font-medium">Total skiing</td>
-                <td className="py-2 text-right font-mono text-xs tabular-nums text-gray-600">{formatDuration(skiingSeconds)}</td>
-                <td className="py-2 text-right text-gray-400 text-xs">{skiingSessions}</td>
-                <td className="py-2 text-right text-gray-400 text-xs">
-                  {totalSeconds > 0 ? Math.round((skiingSeconds / totalSeconds) * 100) : 0}%
-                </td>
-              </tr>
+              <div key="total-skiing" className="py-[9px] border-b border-dotted border-atlas-rule">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted pl-4">Total skiing</span>
+                  <span className="font-mono text-[11px] text-atlas-muted">
+                    {formatDuration(skiingSeconds)} · {totalSeconds > 0 ? Math.round((skiingSeconds / totalSeconds) * 100) : 0}%
+                  </span>
+                </div>
+              </div>
             )}
-          </>
-        ))}
-        <tr className="border-t border-[#e5e5e5] font-medium">
-          <td className="pt-2 pb-1 text-gray-700">Total</td>
-          <td className="pt-2 pb-1 text-right font-mono text-xs tabular-nums">{formatDuration(totalSeconds)}</td>
-          <td className="pt-2 pb-1 text-right text-gray-500">{bySport.reduce((s, a) => s + a.sessions, 0)}</td>
-          <td className="pt-2 pb-1 text-right text-gray-400 text-xs">100%</td>
-        </tr>
-      </tbody>
-    </table>
+          </div>
+        )
+      })}
+
+      <div className="mt-3 pt-2.5 border-t border-atlas-rule flex justify-between font-mono text-[10px] tracking-[0.12em] uppercase text-atlas-muted">
+        <span>Total</span>
+        <span>{formatDuration(totalSeconds)} · {bySport.reduce((s, a) => s + a.sessions, 0)} sessions</span>
+      </div>
+    </div>
   )
 }

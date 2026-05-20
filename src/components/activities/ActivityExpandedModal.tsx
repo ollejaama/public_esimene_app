@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { Spinner } from '@/components/ui/Spinner'
-import { SportIcon } from '@/components/ui/SportIcon'
 import { ActivityContent } from './ActivityContent'
 import { SportTagSelector } from './SportTagSelector'
 import { StrengthSubtypeSelector } from './StrengthSubtypeSelector'
@@ -16,7 +15,6 @@ import { Activity, ActivityLap, LactateMeasurement } from '@/lib/supabase/types'
 import { ZoneRow } from '@/lib/analytics/hrZones'
 import { SPORT_COLORS, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { effectiveSportKey, getActivityTitle } from '@/lib/activity'
-import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 import { IntervalSetsSection } from './IntervalSetsSection'
 import { IntervalSetupModal } from './IntervalSetupModal'
 import { NotesEditor } from './NotesEditor'
@@ -48,9 +46,24 @@ interface ActivityDetail {
   lactate: LactateMeasurement[]
 }
 
+const SPORT_GLYPHS: Record<string, string> = {
+  ski_classic: '╱╱', ski_skate: '╳╳',
+  rollerski_classic: '╱·', rollerski_skate: '╳·',
+  run: '↗', strength: '◼', basic_strength: '◻',
+  cycling: '◯', treadmill: '═', imitation: '·',
+  Running: '↗', Skiing: '╱╱', Rollerski: '╱·',
+  Strength: '◼', Cycling: '◯', Treadmill: '═', Imitation: '·',
+}
+
 function getSportColor(activity: Activity, customTag?: string | null): string {
   const key = customTag ?? effectiveSportKey(activity)
   return SPORT_COLORS[CUSTOM_TAG_COLOR_KEY[key] ?? key] ?? SPORT_COLORS.Other
+}
+
+function getSportGlyph(activity: Activity, customTag?: string | null): string {
+  return SPORT_GLYPHS[customTag ?? '']
+    ?? SPORT_GLYPHS[effectiveSportKey(activity)]
+    ?? '·'
 }
 
 function formatDate(iso: string): string {
@@ -60,6 +73,39 @@ function formatDate(iso: string): string {
   }).format(new Date(iso))
 }
 
+function IntensityBadge({ type }: { type: string | null }) {
+  if (type === 'interval') {
+    return (
+      <span className="atlas-pill-interval border border-atlas-accent font-mono text-[9px] tracking-[0.15em] uppercase px-[7px] py-[3px] text-atlas-accent font-semibold">
+        Interval
+      </span>
+    )
+  }
+  if (type === 'speed') {
+    return (
+      <span className="atlas-badge-speed border font-mono text-[9px] tracking-[0.15em] uppercase px-[7px] py-[3px] font-semibold">
+        Speed
+      </span>
+    )
+  }
+  if (type === 'competition') {
+    return (
+      <span className="atlas-badge-competition border font-mono text-[9px] tracking-[0.15em] uppercase px-[7px] py-[3px] font-semibold">
+        Competition
+      </span>
+    )
+  }
+  return null
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="font-mono text-[9px] tracking-[0.22em] uppercase text-atlas-muted mb-2">
+      {children}
+    </p>
+  )
+}
+
 export function ActivityExpandedModal({ activityId, onClose, isCoach = false, showRPE = false, rpeScale = 'rpe', showLactate = false }: ActivityExpandedModalProps) {
   const router = useRouter()
   const [detail, setDetail] = useState<ActivityDetail | null>(null)
@@ -67,8 +113,8 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
   const [error, setError] = useState<string | null>(null)
   const [localIntensityType, setLocalIntensityType] = useState<string | null>(null)
   const [showIntervalModal, setShowIntervalModal] = useState(false)
+  const [customTag, setCustomTag] = useState<string | null>(null)
 
-  // Coach comment state
   const [commentValue, setCommentValue] = useState('')
   const [editingComment, setEditingComment] = useState(false)
   const [savingComment, setSavingComment] = useState(false)
@@ -82,10 +128,10 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
       .then((data) => {
         setDetail(data)
         setLocalIntensityType(data.activity?.intensity_type ?? null)
+        setCustomTag(data.activity?.custom_sport_tag ?? null)
         setCommentValue(data.activity?.coach_comment ?? '')
         setHeartActive(data.activity?.athlete_heart ?? false)
         setLoading(false)
-        // Mark read flags
         if (!isCoach && data.activity?.coach_comment_unread) {
           fetch(`/api/activity/${activityId}/mark-comment-read`, { method: 'PATCH' })
         }
@@ -123,6 +169,7 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
   }
 
   function handleTagChanged(tag: string | null) {
+    setCustomTag(tag)
     setDetail((prev) =>
       prev ? { ...prev, activity: { ...prev.activity, custom_sport_tag: tag } } : prev
     )
@@ -130,46 +177,63 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
   }
 
   const activity = detail?.activity
-  const color = activity ? getSportColor(activity, activity.custom_sport_tag) : '#aaa'
-  const sportKey = activity ? (activity.custom_sport_tag ?? effectiveSportKey(activity)) : 'Other'
+  const color = activity ? getSportColor(activity, customTag) : '#aaa'
+  const glyph = activity ? getSportGlyph(activity, customTag) : '·'
   const activitySeconds = activity ? (activity.moving_time ?? activity.elapsed_time) : 0
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-5xl">
-      <div className="p-6">
-        {loading && (
-          <div className="flex justify-center py-16">
-            <Spinner className="w-6 h-6" />
-          </div>
-        )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {detail && activity && !loading && (
-          <div className="space-y-5">
-            {/* Header — popup aesthetic with sport icon and color */}
-            <div className="flex items-start gap-4 pr-8">
-              <span
-                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={{ backgroundColor: `${color}20`, color }}
-              >
-                <SportIcon sportKey={sportKey} className="w-6 h-6" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base font-semibold text-gray-900">{getActivityTitle(activity)}</h2>
-                  {(activity.intensity_type === 'interval' || activity.intensity_type === 'speed' || activity.intensity_type === 'competition') && (
-                    <ActivityTypeBadge intensityType={activity.intensity_type} />
-                  )}
-                  {activity.hidden && (
-                    <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-200 text-gray-500 leading-none flex-shrink-0">hidden</span>
-                  )}
-                  {activity.is_manual && (
-                    <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-100 text-gray-500 leading-none flex-shrink-0">manual</span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-400 mt-0.5">{formatDate(activity.start_date)}</p>
-              </div>
-            </div>
+    <Modal open onClose={onClose} maxWidth="max-w-[1120px]" hideCloseButton>
+      {loading && (
+        <div className="flex justify-center py-16">
+          <Spinner className="w-6 h-6" />
+        </div>
+      )}
+      {error && (
+        <p className="font-mono text-[11px] text-atlas-accent p-6">{error}</p>
+      )}
 
+      {detail && activity && !loading && (
+        <>
+          {/* ── Header band ───────────────────────────────────── */}
+          <div className="flex items-start gap-4 border-b border-atlas-rule bg-atlas-bg relative" style={{ padding: '24px 28px 18px' }}>
+            <span
+              className="shrink-0 flex items-center justify-center font-mono font-semibold border"
+              style={{ width: 52, height: 52, backgroundColor: `${color}22`, borderColor: color, color, fontSize: 20 }}
+            >
+              {glyph}
+            </span>
+            <div className="flex-1 min-w-0 pr-10">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-serif text-[28px] font-normal tracking-[-0.02em] leading-[1.15] text-atlas-ink">
+                  {getActivityTitle(activity)}
+                </h2>
+                <IntensityBadge type={localIntensityType} />
+                {activity.is_manual && (
+                  <span className="font-mono text-[9px] tracking-[0.1em] uppercase px-1.5 py-0.5 text-atlas-muted bg-atlas-panel border border-atlas-rule">
+                    manual
+                  </span>
+                )}
+                {activity.hidden && (
+                  <span className="font-mono text-[9px] tracking-[0.1em] uppercase px-1.5 py-0.5 text-atlas-muted bg-atlas-panel border border-atlas-rule">
+                    hidden
+                  </span>
+                )}
+              </div>
+              <p className="mt-1.5 font-serif italic text-[14px] text-atlas-muted leading-none">
+                {formatDate(activity.start_date)}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center border border-atlas-rule text-atlas-muted hover:text-atlas-ink hover:border-atlas-muted font-mono text-sm leading-none transition-colors"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* ── Body ──────────────────────────────────────────── */}
+          <div className="space-y-5" style={{ padding: '20px 28px 28px' }}>
             <SportTagSelector
               activityId={activity.id}
               currentTag={activity.custom_sport_tag}
@@ -183,8 +247,8 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
               onChanged={handleTagChanged}
             />
 
-            <div className="border border-[#e5e5e5] rounded-lg p-5">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Notes</h2>
+            <div>
+              <SectionLabel>Notes</SectionLabel>
               <NotesEditor activityId={activity.id} initialNotes={activity.notes} />
             </div>
 
@@ -221,28 +285,29 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
               />
             )}
 
-            {/* RPE */}
             {showRPE && detail.activity && (
-              <div className="border border-[#e5e5e5] rounded-lg p-5">
+              <div>
+                <SectionLabel>RPE</SectionLabel>
                 <RPEInput activityId={detail.activity.id} initialValue={detail.activity.rpe} scale={rpeScale} />
               </div>
             )}
 
-            {/* Lactate */}
             {showLactate && (
-              <div className="border border-[#e5e5e5] rounded-lg p-5">
+              <div>
+                <SectionLabel>Lactate</SectionLabel>
                 <LactateInput activityId={activityId} initialValues={detail.lactate ?? []} />
               </div>
             )}
 
-            {/* Coach comment */}
             {isCoach ? (
-              <div className="border border-[#e5e5e5] rounded-lg p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Coach comment</h2>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <SectionLabel>Coach comment</SectionLabel>
                   {heartActive && (
-                    <span className="text-base" title="Athlete liked this">
-                      ❤️{detail.activity?.athlete_heart_unread && <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-red-500 align-top mt-0.5" />}
+                    <span className="text-sm text-atlas-accent" title="Athlete liked this">
+                      ♥{detail.activity?.athlete_heart_unread && (
+                        <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-red-500 align-top mt-0.5" />
+                      )}
                     </span>
                   )}
                 </div>
@@ -254,19 +319,19 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
                       onChange={(e) => setCommentValue(e.target.value)}
                       rows={4}
                       placeholder="Add a comment for the athlete…"
-                      className="w-full text-sm text-gray-800 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-gray-300"
+                      className="w-full font-serif italic text-sm text-atlas-ink bg-transparent border border-atlas-rule px-3 py-2 resize-none focus:outline-none focus:border-atlas-muted placeholder:text-atlas-faint"
                     />
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex gap-3 mt-2">
                       <button
                         onClick={handleSaveComment}
                         disabled={savingComment}
-                        className="flex-1 bg-gray-900 text-white text-xs font-medium py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                        className="bg-atlas-selected text-atlas-selectedFg font-mono text-[10px] tracking-[0.1em] uppercase px-4 py-1.5 hover:opacity-90 disabled:opacity-50 transition-opacity"
                       >
-                        {savingComment ? 'Saving…' : 'Save comment'}
+                        {savingComment ? 'Saving…' : 'Save'}
                       </button>
                       <button
                         onClick={() => { setEditingComment(false); setCommentValue(detail.activity?.coach_comment ?? '') }}
-                        className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                        className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted hover:text-atlas-ink transition-colors"
                       >
                         Cancel
                       </button>
@@ -275,34 +340,37 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
                 ) : (
                   <button
                     onClick={() => setEditingComment(true)}
-                    className="w-full text-left px-3 py-2 rounded-lg border border-dashed border-gray-200 hover:border-gray-300 transition-colors"
+                    className="w-full text-left border border-dashed border-atlas-rule hover:border-atlas-faint transition-colors"
+                    style={{ padding: '10px 12px', minHeight: 56 }}
                   >
-                    {commentValue ? (
-                      <p className="text-sm text-gray-700">{commentValue}</p>
-                    ) : (
-                      <p className="text-sm text-gray-300">+ Add comment for athlete</p>
-                    )}
+                    {commentValue
+                      ? <p className="font-serif italic text-sm text-atlas-ink">{commentValue}</p>
+                      : <p className="font-serif italic text-[13px] text-atlas-faint">+ Add comment for athlete</p>
+                    }
                   </button>
                 )}
               </div>
             ) : detail.activity?.coach_comment ? (
-              <div className="border border-[#e5e5e5] rounded-lg p-5">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Coach</h2>
-                <div className="bg-blue-50 rounded-lg px-3 py-2 flex items-start gap-2">
-                  <p className="text-sm text-blue-900 flex-1">{detail.activity.coach_comment}</p>
+              <div>
+                <SectionLabel>Coach</SectionLabel>
+                <div className="atlas-coach-card border border-atlas-rule border-l-2 border-l-atlas-accent flex items-start gap-3" style={{ padding: '12px 14px' }}>
+                  <div className="flex-1">
+                    <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-accent mb-1">Coach</p>
+                    <p className="font-serif text-sm leading-[1.55] text-atlas-ink">{detail.activity.coach_comment}</p>
+                  </div>
                   <button
                     onClick={handleToggleHeart}
-                    className="flex-shrink-0 text-base leading-none transition-transform hover:scale-110"
+                    className="text-lg leading-none shrink-0 transition-colors"
+                    style={{ color: heartActive ? 'var(--atlas-accent)' : 'var(--atlas-faint)' }}
                     aria-label={heartActive ? 'Remove heart' : 'Heart this comment'}
                   >
-                    {heartActive ? '❤️' : '🤍'}
+                    {heartActive ? '♥' : '♡'}
                   </button>
                 </div>
               </div>
             ) : null}
 
-            {/* Controls — intentionally at the bottom, require scrolling */}
-            <div className="border-t border-gray-100 pt-4 space-y-3">
+            <div className="border-t border-atlas-rule pt-4 space-y-3">
               <ContributionEditor
                 activityId={activity.id}
                 initialHours={activity.contribution_hours ?? null}
@@ -315,8 +383,8 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
               )}
             </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </Modal>
   )
 }

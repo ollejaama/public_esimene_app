@@ -9,6 +9,7 @@ import { ActivityExpandedModal } from './ActivityExpandedModal'
 import { DayViewModal } from './DayViewModal'
 import { ManualActivityModal } from './ManualActivityModal'
 import { getISOWeek } from '@/lib/analytics/weekSummary'
+import { effectiveContributionSeconds } from '@/lib/activity'
 
 interface UserSettings {
   show_rpe: boolean
@@ -31,19 +32,13 @@ function getDaysInMonth(year: number, month: number): Date[] {
   const days: Date[] = []
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-
-  // Fill from Monday of the first week
-  const startDow = (firstDay.getDay() + 6) % 7  // 0=Mon
+  const startDow = (firstDay.getDay() + 6) % 7
   for (let i = startDow; i > 0; i--) {
     const d = new Date(firstDay)
     d.setDate(firstDay.getDate() - i)
     days.push(d)
   }
-  // All days in month
-  for (let d = 1; d <= lastDay.getDate(); d++) {
-    days.push(new Date(year, month, d))
-  }
-  // Fill to end of last week
+  for (let d = 1; d <= lastDay.getDate(); d++) days.push(new Date(year, month, d))
   const remaining = 7 - (days.length % 7)
   if (remaining < 7) {
     for (let i = 1; i <= remaining; i++) {
@@ -59,7 +54,10 @@ function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-export function ActivityCalendar({ activities, initialMonth, restDayThresholdMinutes = 0, isCoach = false, illnessEntries = [], userSettings }: ActivityCalendarProps) {
+export function ActivityCalendar({
+  activities, initialMonth, restDayThresholdMinutes = 0,
+  isCoach = false, illnessEntries = [], userSettings,
+}: ActivityCalendarProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialMonth)
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
@@ -77,7 +75,6 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
     const todayEnd = new Date()
     todayEnd.setHours(23, 59, 59, 999)
     if (day <= todayEnd) {
-      // All past/today days open DayViewModal so illness log is always accessible
       setSelectedDay({ date: day, activities: activityMap.get(dateKey) ?? [], dateKey })
     } else {
       const { week, year } = getISOWeek(day)
@@ -85,7 +82,6 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
     }
   }
 
-  // Group activities by date key, sorted ascending by start_date
   const activityMap = new Map<string, Activity[]>()
   for (const activity of activities) {
     const key = toDateKey(new Date(activity.start_date))
@@ -101,48 +97,91 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
     setMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + dir, 1))
   }
 
-  const monthLabel = month.toLocaleString('en-GB', { month: 'long', year: 'numeric' })
+  // Navigation labels
+  const prevMonth = new Date(month.getFullYear(), month.getMonth() - 1, 1)
+  const nextMonth = new Date(month.getFullYear(), month.getMonth() + 1, 1)
+  const prevLabel = prevMonth.toLocaleString('en-GB', { month: 'short' })
+  const nextLabel = nextMonth.toLocaleString('en-GB', { month: 'short' })
+
+  // Footer stats — current month through today (or end of month)
+  const now = new Date()
+  const isThisMonth = month.getMonth() === now.getMonth() && month.getFullYear() === now.getFullYear()
+  const cutoff = isThisMonth ? now : new Date(month.getFullYear(), month.getMonth() + 1, 0)
+  const cutoffKey = toDateKey(cutoff)
+  const monthStr = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
+  const lastDayNum = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()
+
+  let footerSecs = 0, intervalDaysCount = 0, restDaysCount = 0
+  for (let d = 1; d <= lastDayNum; d++) {
+    const dayKey = `${monthStr}-${String(d).padStart(2, '0')}`
+    if (dayKey > cutoffKey) break
+    const dayActs = (activityMap.get(dayKey) ?? []).filter((a) => !a.hidden)
+    const daySecs = dayActs.reduce((s, a) => s + effectiveContributionSeconds(a), 0)
+    footerSecs += daySecs
+    if (dayActs.some((a) => a.intensity_type === 'interval')) intervalDaysCount++
+    const isRest = restDayThresholdMinutes === 0 ? daySecs === 0 : daySecs < restDayThresholdMinutes * 60
+    if (isRest) restDaysCount++
+  }
+  const footerMins = Math.round(footerSecs / 60)
+  const footerH = Math.floor(footerMins / 60)
+  const footerM = footerMins % 60
+  const throughDay = cutoff.getDate()
+  const throughMonthName = cutoff.toLocaleString('en-GB', { month: 'long' })
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <button onClick={() => navigate(-1)} className="p-1 hover:bg-gray-100 rounded">
-            <svg className="w-4 h-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-          </button>
-          <span className="text-sm font-semibold text-gray-800">{monthLabel}</span>
-          <button onClick={() => navigate(1)} className="p-1 hover:bg-gray-100 rounded">
-            <svg className="w-4 h-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-          </button>
+      {/* Page header */}
+      <div className="flex items-end justify-between mb-7">
+        <div>
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">
+            Chapter II · The month of
+          </p>
+          <h1 className="font-serif text-[56px] font-normal tracking-[-0.03em] leading-[1.05] mt-1.5 text-atlas-ink">
+            {month.toLocaleString('en-GB', { month: 'long' })}
+            <span className="italic text-atlas-accent"> {month.getFullYear()}</span>
+          </h1>
         </div>
-        {!isCoach && (
-          <button
-            onClick={() => setShowManualModal(true)}
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 border border-[#e5e5e5] hover:border-gray-400 rounded-md px-2.5 py-1.5 transition-colors"
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Add training
-          </button>
-        )}
+        <div className="flex flex-col items-end gap-2 pb-1">
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => navigate(-1)}
+              className="border border-atlas-rule bg-transparent text-atlas-ink font-sans text-xs px-2.5 py-1 hover:border-atlas-muted transition-colors"
+            >
+              ← {prevLabel}
+            </button>
+            <button
+              onClick={() => navigate(1)}
+              className="border border-atlas-rule bg-transparent text-atlas-ink font-sans text-xs px-2.5 py-1 hover:border-atlas-muted transition-colors"
+            >
+              {nextLabel} →
+            </button>
+          </div>
+          {!isCoach && (
+            <button
+              onClick={() => setShowManualModal(true)}
+              className="bg-atlas-selected text-atlas-selectedFg font-mono text-[10px] tracking-[0.1em] uppercase px-[14px] py-[6px] hover:opacity-90 transition-opacity"
+            >
+              + Add training
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="border border-[#e5e5e5] rounded-lg overflow-hidden">
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7 border-b border-[#e5e5e5]">
+      {/* Calendar grid */}
+      <div className="border-l border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)' }}>
+        {/* Weekday header row */}
+        <div className="grid grid-cols-7">
           {WEEKDAYS.map((day) => (
-            <div key={day} className="text-xs text-gray-400 text-center py-2 font-medium">
+            <div
+              key={day}
+              className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted px-3 py-2.5 border-b border-r border-atlas-rule bg-atlas-panel"
+            >
               {day}
             </div>
           ))}
         </div>
 
-        {/* Calendar grid */}
+        {/* Day cells */}
         <div className="grid grid-cols-7">
           {days.map((day) => {
             const dateKey = toDateKey(day)
@@ -161,6 +200,18 @@ export function ActivityCalendar({ activities, initialMonth, restDayThresholdMin
             )
           })}
         </div>
+      </div>
+
+      {/* Footer marginalia */}
+      <div className="mt-4 pt-3 border-t border-atlas-rule flex items-baseline justify-between">
+        <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-atlas-muted">
+          Through {throughDay} {throughMonthName}
+        </span>
+        <span className="font-serif italic text-sm text-atlas-muted">
+          {footerH}h {String(footerM).padStart(2, '0')}m logged ·{' '}
+          <span className="text-atlas-accent">{intervalDaysCount} interval {intervalDaysCount === 1 ? 'day' : 'days'}</span>
+          {' '}· {restDaysCount} rest {restDaysCount === 1 ? 'day' : 'days'}
+        </span>
       </div>
 
       {selectedActivity && !expandedActivityId && (

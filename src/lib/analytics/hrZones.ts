@@ -76,7 +76,7 @@ export function zoneSecondsToRows(totals: ZoneSeconds, zones: HRZoneSettings): Z
 
   const zone0Row: ZoneRow = {
     name: 'I0',
-    color: '#94a3b8',
+    color: '#6b8aa3',
     seconds: totals.z0,
     percent: total > 0 ? Math.round((totals.z0 / total) * 100) : 0,
   }

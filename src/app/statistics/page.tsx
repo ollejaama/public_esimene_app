@@ -74,6 +74,12 @@ function toLocalDateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+const ZONE_KEYS = ['z0', 'z1', 'z2', 'z3', 'z4', 'z5'] as const
+const ZONE_LABELS: Record<string, string> = { z0: 'I0', z1: 'I1', z2: 'I2', z3: 'I3', z4: 'I4', z5: 'I5' }
+const ZONE_COLORS: Record<string, string> = {
+  z0: '#6b8aa3', z1: '#9ab48a', z2: '#7a9c66', z3: '#c6a24a', z4: '#c8703a', z5: '#a23b2a',
+}
+
 export default async function StatisticsPage({
   searchParams,
 }: {
@@ -109,7 +115,6 @@ export default async function StatisticsPage({
 
   const zones: HRZoneSettings = zoneData ?? DEFAULT_ZONES
 
-  // HR streams for the selected range
   const hrActivityIds = (rangeActivities ?? []).filter((a) => a.has_hr_data).map((a) => a.id)
   const { data: streams } = hrActivityIds.length > 0
     ? await db.from('activity_hr_streams').select('*').in('activity_id', hrActivityIds)
@@ -138,7 +143,6 @@ export default async function StatisticsPage({
   const totalM = Math.round((totalSeconds % 3600) / 60)
   const totalHoursLabel = totalM > 0 ? `${totalH}h ${totalM}m` : `${totalH}h`
 
-  // Compute rest days
   const thresholdSeconds = zones.rest_day_threshold_minutes * 60
   const dayTotals = new Map<string, number>()
   const today = new Date()
@@ -163,7 +167,6 @@ export default async function StatisticsPage({
     .filter(([, v]) => zones.rest_day_threshold_minutes === 0 ? v === 0 : v < thresholdSeconds)
     .map(([key]) => key)
 
-  // Lactate: average of per-activity averages + per-sport averages (season view only)
   let lactateAvg: number | null = null
   let lactateSessionCount = 0
   let lactateBySport: { sportKey: string; avgMmol: number }[] = []
@@ -198,7 +201,6 @@ export default async function StatisticsPage({
     }
   }
 
-  // Interval sets: fetch for interval activities to compute booked vs actual zone summary
   const intervalActivityIds = (rangeActivities ?? []).filter((a) => a.intensity_type === 'interval').map((a) => a.id)
   const { data: intervalSetsRaw } = intervalActivityIds.length > 0
     ? await db.from('interval_sets').select('*').in('activity_id', intervalActivityIds).eq('user_id', session.userId)
@@ -215,7 +217,6 @@ export default async function StatisticsPage({
     }
   }
 
-  // Actual zone seconds for interval activities from HR streams
   const actualZones: Record<string, number> = { I2: 0, I3: 0, I4: 0, I5: 0 }
   for (const actId of intervalActivityIds) {
     const hrStream = streamMap.get(actId)
@@ -234,7 +235,6 @@ export default async function StatisticsPage({
     .filter((z) => bookedZones[z] > 0 || actualZones[z] > 0)
     .map((zone) => ({ zone, bookedSecs: bookedZones[zone], actualSecs: actualZones[zone] }))
 
-  // Season-only: previous season total for comparison
   let prevSeasonHours: number | null = null
   if (range === 'season') {
     const seasonStartYear = start.getFullYear()
@@ -251,101 +251,124 @@ export default async function StatisticsPage({
     }
   }
 
+  const seasonYear = range === 'season'
+    ? `${start.getFullYear()}/${String(start.getFullYear() + 1).slice(-2)}`
+    : null
+
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Statistics</h1>
+      <SyncRefresher />
+
+      {/* Page head */}
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">
+            Chapter IV · the season so far
+          </p>
+          <h1 className="font-serif text-[56px] tracking-[-0.03em] leading-[1.05] text-atlas-ink mt-1.5">
+            Statistics{seasonYear && <span className="italic text-atlas-accent"> {seasonYear}</span>}
+          </h1>
+        </div>
+        <TimeRangeSelector current={range} offset={offset} periodLabel={label} />
       </div>
 
-      <SyncRefresher />
-      <TimeRangeSelector current={range} offset={offset} periodLabel={label} />
-
       <div className="space-y-6">
-        {/* Zone progression chart */}
-        <div className="border border-[#e5e5e5] rounded-lg p-5">
-          <div className="flex items-start gap-6">
+        {/* Plate I — Training Volume */}
+        <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '20px 24px 24px' }}>
+          <div className="flex items-start gap-8">
             <div className="flex-1 min-w-0">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                Training Volume
-              </h2>
+              <div className="flex items-start justify-between mb-1">
+                <div>
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">
+                    Plate I · Training volume
+                  </p>
+                  <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">
+                    {range === 'season' ? 'weekly totals, stacked by zone' : 'stacked by zone'}
+                  </p>
+                </div>
+                {/* Zone legend */}
+                <div className="flex gap-3 flex-wrap justify-end mt-0.5">
+                  {ZONE_KEYS.map((k) => (
+                    <span key={k} className="inline-flex items-center gap-1.5 font-mono text-[9px] tracking-[0.1em] text-atlas-muted">
+                      <span className="w-[9px] h-[9px] flex-shrink-0" style={{ backgroundColor: ZONE_COLORS[k] }} />
+                      {ZONE_LABELS[k]}
+                    </span>
+                  ))}
+                </div>
+              </div>
               <VolumeByZoneChart data={zoneProgressionData} zoneNames={zoneNames} range={range} />
             </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-4xl font-bold text-gray-900 leading-none">{totalHoursLabel}</p>
-              <p className="text-xs text-gray-400 mt-1">total</p>
+
+            {/* Big total */}
+            <div className="text-right flex-shrink-0 pl-6 border-l border-atlas-rule" style={{ minWidth: 160 }}>
+              <div className="font-serif text-[64px] tracking-[-0.03em] leading-[0.95] text-atlas-ink">
+                {totalHoursLabel}
+              </div>
+              <p className="font-serif italic text-[15px] text-atlas-muted mt-2">
+                total in {range}
+              </p>
+              <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-atlas-faint mt-2">
+                {(rangeActivities ?? []).length} sessions
+              </p>
             </div>
           </div>
+
+          {/* Seasonal / monthly sub-widgets inline */}
+          {range === 'month' && (
+            <div className="mt-4 pt-4 border-t border-atlas-rule">
+              <MonthlyVolumeWidget
+                currentHours={totalSeconds / 3600}
+                monthStart={start}
+                monthEnd={end}
+              />
+            </div>
+          )}
+          {range === 'season' && (
+            <div className="mt-4 pt-4 border-t border-atlas-rule">
+              <SeasonalVolumeWidget
+                currentHours={totalSeconds / 3600}
+                seasonStart={start}
+                seasonEnd={end}
+                prevSeasonHours={prevSeasonHours}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Monthly volume projection — month view only */}
-        {range === 'month' && (
-          <div className="border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Month Volume
-            </h2>
-            <MonthlyVolumeWidget
-              currentHours={totalSeconds / 3600}
-              monthStart={start}
-              monthEnd={end}
-            />
-          </div>
-        )}
-
-        {/* Seasonal volume estimate — season view only */}
-        {range === 'season' && (
-          <div className="border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Season Volume
-            </h2>
-            <SeasonalVolumeWidget
-              currentHours={totalSeconds / 3600}
-              seasonStart={start}
-              seasonEnd={end}
-              prevSeasonHours={prevSeasonHours}
-            />
-          </div>
-        )}
-
-        {/* Sport breakdown + HR zones */}
+        {/* Plates II + III — Sport breakdown + HR zone distribution */}
         <div className="grid grid-cols-2 gap-6">
-          <div className="border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Sport Breakdown
-            </h2>
+          <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate II · Sport breakdown</p>
+            <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5 mb-4">where the hours went</p>
             <SportBreakdownTable bySport={summary.bySport} />
           </div>
 
-          <div className="border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              HR Zone Distribution
-            </h2>
+          <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate III · Heart-rate distribution</p>
+            <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5 mb-4">where the heart has lived</p>
             <HRZoneDonutChart zones={zoneRows} />
           </div>
         </div>
 
-        {/* Intensity breakdown + Rest days + Illness */}
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Intensity Breakdown
-            </h2>
+        {/* Plates IV + V + VI — Intensity + Rest + Health */}
+        <div className="grid gap-6" style={{ gridTemplateColumns: '2fr 1fr' }}>
+          <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate IV · Intensity breakdown</p>
+            <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5 mb-5">tap a category to read the entries</p>
             <IntensityBreakdown activities={rangeActivities ?? []} intervalZoneSummary={intervalZoneSummary} />
           </div>
-          <div className="space-y-4">
-            <div className="border border-[#e5e5e5] rounded-lg p-5">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                Rest Days
-              </h2>
+
+          <div className="flex flex-col gap-4">
+            <div className="bg-atlas-panel border border-atlas-rule flex-1" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '16px 20px 18px' }}>
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted mb-2.5">Plate V · Rest days</p>
               <RestDaysWidget
                 restDayCount={restDayCount}
                 thresholdMinutes={zones.rest_day_threshold_minutes}
                 restDayDates={restDayDates}
               />
             </div>
-            <div className="border border-[#e5e5e5] rounded-lg p-5">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                Health
-              </h2>
+            <div className="bg-atlas-panel border border-atlas-rule flex-1" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '16px 20px 18px' }}>
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted mb-2.5">Plate VI · Health</p>
               <IllnessWidget
                 illnessEntries={illnessData ?? []}
                 start={start}
@@ -355,12 +378,18 @@ export default async function StatisticsPage({
           </div>
         </div>
 
-        {/* RPE — when enabled */}
+        {/* Plate VII — Effort rating */}
         {userSettingsData?.show_rpe && (
-          <div className="border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Effort Rating
-            </h2>
+          <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
+            <div className="flex items-end justify-between mb-4">
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate VII · Effort rating</p>
+                <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">perceived effort, by the athlete's own hand</p>
+              </div>
+              <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-atlas-faint">
+                {userSettingsData.rpe_scale === 'borg' ? 'Borg (6–20)' : 'RPE (1–10)'}
+              </span>
+            </div>
             <RPEWidget
               activities={rangeActivities ?? []}
               scale={(userSettingsData.rpe_scale as 'rpe' | 'borg') ?? 'rpe'}
@@ -368,15 +397,28 @@ export default async function StatisticsPage({
           </div>
         )}
 
-        {/* Lactate — season view only, when enabled */}
+        {/* Plate VIII — Lactate */}
         {range === 'season' && userSettingsData?.show_lactate && (
-          <div className="border border-[#e5e5e5] rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Lactate
-            </h2>
+          <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
+            <div className="flex items-end justify-between mb-4">
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate VIII · Lactate</p>
+                <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">measured in millimoles, recorded by hand</p>
+              </div>
+              <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-atlas-faint">mmol/L</span>
+            </div>
             <LactateChart avg={lactateAvg} sessionCount={lactateSessionCount} lactateBySport={lactateBySport} />
           </div>
         )}
+
+        {/* Marginalia footer */}
+        <div className="border-t border-atlas-rule pt-3 flex items-baseline justify-between mt-2">
+          <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-atlas-muted">Marginalia</span>
+          <span className="font-serif italic text-[14px] text-atlas-muted">
+            {(rangeActivities ?? []).length} entries ·{' '}
+            <span className="text-atlas-accent">season in progress</span>
+          </span>
+        </div>
       </div>
     </AppShell>
   )

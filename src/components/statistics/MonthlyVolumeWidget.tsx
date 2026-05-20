@@ -34,26 +34,24 @@ export function MonthlyVolumeWidget({ currentHours, monthStart, monthEnd }: Mont
   })
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {/* So far */}
-      <div className="flex flex-col">
-        <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1">
+    <div className="grid grid-cols-2 gap-6">
+      <div>
+        <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted mb-1">
           {monthComplete ? 'Month total' : 'So far'}
         </p>
-        <p className="text-xl font-semibold text-gray-800">{fmtH(currentHours)}</p>
+        <p className="font-serif text-[22px] tracking-[-0.02em] text-atlas-ink">{fmtH(currentHours)}</p>
         {!monthComplete && (
-          <p className="text-[10px] text-gray-400 mt-0.5">{Math.round(avgHoursPerWeek * 10) / 10}h/week avg</p>
+          <p className="font-mono text-[9px] text-atlas-faint mt-0.5">{Math.round(avgHoursPerWeek * 10) / 10}h/week avg</p>
         )}
       </div>
 
-      {/* Projected */}
       {!monthComplete && (
-        <div className="flex flex-col">
-          <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1">
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted mb-1">
             Projected by {projectedByLabel}
           </p>
-          <p className="text-xl font-semibold text-gray-500">~{fmtH(projectedTotal)}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">estimate</p>
+          <p className="font-serif text-[22px] tracking-[-0.02em] text-atlas-muted">~{fmtH(projectedTotal)}</p>
+          <p className="font-serif italic text-[12px] text-atlas-faint mt-0.5">estimate</p>
         </div>
       )}
     </div>

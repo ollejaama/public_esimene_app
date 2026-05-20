@@ -1,6 +1,5 @@
 'use client'
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { ZoneRow, formatDuration } from '@/lib/analytics/hrZones'
 
 interface HRZoneDonutChartProps {
@@ -12,40 +11,54 @@ export function HRZoneDonutChart({ zones }: HRZoneDonutChartProps) {
   const totalSeconds = zones.reduce((sum, z) => sum + z.seconds, 0)
 
   if (data.length === 0) {
-    return <div className="h-48 flex items-center justify-center text-sm text-gray-400">No HR data</div>
+    return (
+      <div className="h-48 flex items-center justify-center font-serif italic text-[13px] text-atlas-faint">
+        No HR data
+      </div>
+    )
   }
 
   return (
-    <div className="flex items-center gap-6">
-      <ResponsiveContainer width={180} height={180}>
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="seconds"
-            nameKey="name"
-            innerRadius={50}
-            outerRadius={80}
-            paddingAngle={2}
+    <div className="flex flex-col gap-3">
+      {/* Stacked horizontal bar */}
+      <div className="flex h-9 border border-atlas-rule overflow-hidden">
+        {data.map((zone, i) => (
+          <div
+            key={zone.name}
+            style={{
+              flexBasis: `${zone.percent}%`,
+              backgroundColor: zone.color,
+              borderRight: i < data.length - 1 ? '1px solid var(--atlas-bg)' : 'none',
+            }}
+            className="flex items-center justify-center"
           >
-            {data.map((zone) => (
-              <Cell key={zone.name} fill={zone.color} />
-            ))}
-          </Pie>
-          <Tooltip
-            formatter={(value) => [formatDuration(Number(value)), '']}
-            contentStyle={{ fontSize: 12, border: '1px solid #e5e5e5', borderRadius: 6 }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+            {zone.percent >= 5 && (
+              <span className="font-mono text-[9px] font-bold" style={{ color: '#1a1815' }}>
+                {zone.percent}%
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
 
-      {/* Legend */}
-      <div className="space-y-1.5">
+      {/* Zone rows */}
+      <div>
         {zones.map((zone) => (
-          <div key={zone.name} className="flex items-center gap-2 text-sm">
-            <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: zone.color }} />
-            <span className="text-gray-600 w-8">{zone.name}</span>
-            <span className="font-mono text-xs text-gray-900 tabular-nums">{formatDuration(zone.seconds)}</span>
-            <span className="text-xs text-gray-400">{zone.percent}%</span>
+          <div
+            key={zone.name}
+            className="flex items-baseline gap-3 py-[7px] border-b border-dotted border-atlas-rule"
+            style={{ display: 'grid', gridTemplateColumns: '12px 1fr auto auto' }}
+          >
+            <span className="w-[10px] h-[10px] mt-0.5" style={{ backgroundColor: zone.color, display: 'inline-block' }} />
+            <span className="font-mono text-[11px] text-atlas-ink font-semibold tracking-[0.05em]">
+              {zone.name}
+            </span>
+            <span className="font-mono text-[11px] text-atlas-muted">
+              {formatDuration(zone.seconds)}
+            </span>
+            <span className="font-mono text-[11px] text-atlas-ink min-w-[32px] text-right">
+              {zone.percent}%
+            </span>
           </div>
         ))}
       </div>
