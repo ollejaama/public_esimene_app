@@ -12,12 +12,12 @@ interface ZoneProgressionChartProps {
 }
 
 const ZONE_COLORS: Record<string, string> = {
-  z0: '#94a3b8',
-  z1: '#4ade80',
-  z2: '#86efac',
-  z3: '#facc15',
-  z4: '#fb923c',
-  z5: '#ef4444',
+  z0: '#6b8aa3',
+  z1: '#9ab48a',
+  z2: '#7a9c66',
+  z3: '#c6a24a',
+  z4: '#c8703a',
+  z5: '#a23b2a',
 }
 
 const ZONE_KEYS = ['z0', 'z1', 'z2', 'z3', 'z4', 'z5'] as const
@@ -40,20 +40,20 @@ function CustomTooltip({ active, payload }: any) {
   if (!pt || pt.totalHours === 0) return null
 
   return (
-    <div className="bg-white border border-[#e5e5e5] rounded-lg p-3 text-xs shadow-sm min-w-[160px]">
-      <p className="font-medium text-gray-700 mb-2">{pt.label}</p>
+    <div className="bg-atlas-panel border border-atlas-rule" style={{ padding: '10px 12px', minWidth: 160 }}>
+      <p className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted mb-1.5">{pt.label}</p>
       {ZONE_KEYS.map((k) => {
         const v = pt[k]
         if (v === null) return null
         return (
           <p key={k} className="flex items-center gap-2 mb-0.5">
-            <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: ZONE_COLORS[k] }} />
-            <span className="text-gray-500 w-6">{/* zoneNames passed via closure in parent */}</span>
-            <span className="font-medium">{fmtPct(v)}</span>
+            <span className="w-2 h-2 flex-shrink-0" style={{ backgroundColor: ZONE_COLORS[k] }} />
+            <span className="font-mono text-[9px] uppercase text-atlas-muted">{/* label */}</span>
+            <span className="font-mono text-[9px] text-atlas-ink ml-auto">{fmtPct(v)}</span>
           </p>
         )
       })}
-      <p className="text-gray-400 mt-1.5 border-t border-[#f0f0f0] pt-1.5">
+      <p className="font-mono text-[9px] text-atlas-faint mt-1.5 border-t border-atlas-rule pt-1.5">
         Volume: {fmtHours(pt.totalHours)}
       </p>
     </div>
@@ -66,20 +66,20 @@ function ZoneTooltip({ active, payload, zoneNames }: any) {
   if (!pt || pt.totalHours === 0) return null
 
   return (
-    <div className="bg-white border border-[#e5e5e5] rounded-lg p-3 text-xs shadow-sm min-w-[160px]">
-      <p className="font-medium text-gray-700 mb-2">{pt.label}</p>
+    <div className="bg-atlas-panel border border-atlas-rule" style={{ padding: '10px 12px', minWidth: 160 }}>
+      <p className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted mb-1.5">{pt.label}</p>
       {ZONE_KEYS.map((k) => {
         const v = pt[k]
         if (v === null) return null
         return (
           <p key={k} className="flex items-center gap-2 mb-0.5">
-            <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: ZONE_COLORS[k] }} />
-            <span className="text-gray-500">{zoneNames[k]}:</span>
-            <span className="font-medium">{fmtPct(v)}</span>
+            <span className="w-2 h-2 flex-shrink-0" style={{ backgroundColor: ZONE_COLORS[k] }} />
+            <span className="font-mono text-[9px] uppercase text-atlas-muted">{zoneNames[k]}</span>
+            <span className="font-mono text-[9px] text-atlas-ink ml-auto">{fmtPct(v)}</span>
           </p>
         )
       })}
-      <p className="text-gray-400 mt-1.5 border-t border-[#f0f0f0] pt-1.5">
+      <p className="font-mono text-[9px] text-atlas-faint mt-1.5 border-t border-atlas-rule pt-1.5">
         Volume: {fmtHours(pt.totalHours)}
       </p>
     </div>
@@ -89,7 +89,7 @@ function ZoneTooltip({ active, payload, zoneNames }: any) {
 export function ZoneProgressionChart({ data, zoneNames }: ZoneProgressionChartProps) {
   const hasData = data.some((p) => p.totalHours > 0)
   if (!hasData) {
-    return <div className="h-52 flex items-center justify-center text-sm text-gray-400">No data</div>
+    return <div className="h-52 flex items-center justify-center font-serif italic text-[13px] text-atlas-faint">No data</div>
   }
 
   const maxVol = Math.max(...data.map((p) => p.totalHours), 0.1)
@@ -98,10 +98,10 @@ export function ZoneProgressionChart({ data, zoneNames }: ZoneProgressionChartPr
   return (
     <ResponsiveContainer width="100%" height={260}>
       <ComposedChart data={data} margin={{ right: 40 }}>
-        <CartesianGrid vertical={false} stroke="#f0f0f0" />
+        <CartesianGrid vertical={false} stroke="var(--atlas-rule)" strokeDasharray="2 3" />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 11, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.05em' }}
           axisLine={false}
           tickLine={false}
         />
@@ -110,8 +110,8 @@ export function ZoneProgressionChart({ data, zoneNames }: ZoneProgressionChartPr
           scale="log"
           domain={[0.1, 100]}
           ticks={[0.1, 0.3, 1, 3, 10, 30, 100]}
-          tickFormatter={(v) => v >= 1 ? `${v}%` : `${v}%`}
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tickFormatter={(v) => `${v}%`}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace' }}
           axisLine={false}
           tickLine={false}
           width={36}
@@ -122,7 +122,7 @@ export function ZoneProgressionChart({ data, zoneNames }: ZoneProgressionChartPr
           orientation="right"
           domain={[0, volMax]}
           tickFormatter={(v) => `${v}h`}
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace' }}
           axisLine={false}
           tickLine={false}
           width={32}
@@ -146,7 +146,7 @@ export function ZoneProgressionChart({ data, zoneNames }: ZoneProgressionChartPr
           yAxisId="vol"
           dataKey="totalHours"
           name="Volume"
-          stroke="#374151"
+          stroke="var(--atlas-ink)"
           strokeWidth={1.5}
           strokeDasharray="5 3"
           dot={false}

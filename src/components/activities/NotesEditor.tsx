@@ -29,20 +29,20 @@ export function NotesEditor({ activityId, initialNotes }: NotesEditorProps) {
   }
 
   return (
-    <div className="mt-4">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Notes</span>
-        {status === 'saving' && <span className="text-xs text-gray-400">Saving…</span>}
-        {status === 'saved' && <span className="text-xs text-green-500">Saved</span>}
-      </div>
+    <div className="relative">
       <textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleBlur}
         placeholder="Add notes about this training session…"
-        rows={4}
-        className="w-full text-sm text-gray-800 border border-gray-200 rounded-lg px-3 py-2 resize-y focus:outline-none focus:ring-1 focus:ring-gray-400 placeholder:text-gray-300"
+        rows={3}
+        className="w-full font-serif text-[13px] italic text-atlas-ink bg-transparent border border-atlas-rule px-3 py-2.5 resize-none focus:outline-none focus:border-atlas-muted placeholder:text-atlas-faint leading-relaxed"
       />
+      {status !== 'idle' && (
+        <span className="absolute bottom-3 right-3 font-mono text-[9px] tracking-[0.1em] uppercase text-atlas-faint pointer-events-none">
+          {status === 'saving' ? 'saving…' : 'saved'}
+        </span>
+      )}
     </div>
   )
 }

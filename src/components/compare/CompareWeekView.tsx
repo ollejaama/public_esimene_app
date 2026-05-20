@@ -9,12 +9,11 @@ import { ActivityModal } from '@/components/activities/ActivityModal'
 import { PlanActivityModal } from '@/components/plan/PlanActivityModal'
 import { SPORT_COLORS, PLANNED_SPORT_COLOR_KEY, CUSTOM_TAG_COLOR_KEY } from '@/lib/constants'
 import { getActivityTitle, effectiveSportKey } from '@/lib/activity'
-import { ActivityTypeBadge } from '@/components/ui/ActivityTypeBadge'
 
 const ILLNESS_COLORS: Record<string, string> = {
-  sick: '#ef4444',
-  injured: '#fb923c',
-  fatigue: '#facc15',
+  sick: '#a23b2a',
+  injured: '#c8703a',
+  fatigue: '#c6a24a',
 }
 
 interface CompareWeekViewProps {
@@ -29,7 +28,8 @@ interface CompareWeekViewProps {
   restDays?: PlannedRestDay[]
 }
 
-const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -38,7 +38,7 @@ function toDateKey(date: Date): string {
 function formatDurationMinutes(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
-  if (h > 0 && m > 0) return `${h}h ${m}m`
+  if (h > 0 && m > 0) return `${h}h${String(m).padStart(2, '0')}`
   if (h > 0) return `${h}h`
   return `${m}m`
 }
@@ -113,179 +113,213 @@ export function CompareWeekView({
     return d
   })
 
-  // Weekly volume totals
   const plannedTotalMinutes = plannedActivities.reduce((s, a) => s + a.duration_minutes, 0)
   const actualTotalMinutes = Math.round(
     actualActivities.filter((a) => !a.hidden).reduce((s, a) => s + (a.moving_time ?? a.elapsed_time), 0) / 60
   )
 
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekStart.getDate() + 6)
+
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Compare</h1>
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Chapter IV · compare</p>
+          <h1 className="font-serif text-[48px] tracking-[-0.03em] leading-[1.05] text-atlas-ink mt-1">
+            Week {week}
+          </h1>
+          <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">
+            {weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – {weekEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </p>
+        </div>
         <WeekNavigator week={week} year={year} basePath="/compare" />
       </div>
 
-      {/* Column headers */}
-      <div className="grid grid-cols-[100px_1fr_1fr] gap-4 mb-2 px-1">
-        <div />
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Planned{plannedTotalMinutes > 0 ? ` — ${formatDurationMinutes(plannedTotalMinutes)}` : ''}
-        </p>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Actual{actualTotalMinutes > 0 ? ` — ${formatDurationMinutes(actualTotalMinutes)}` : ''}
-        </p>
-      </div>
+      {/* Table */}
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns: '100px 1fr 1fr',
+          borderTop: '1.5px solid var(--atlas-ink)',
+          borderLeft: '1px solid var(--atlas-rule)',
+        }}
+      >
+        {/* Column header row */}
+        <div className="border-r border-b border-atlas-rule bg-atlas-panel px-3 py-2.5" />
+        <div className="border-r border-b border-atlas-rule bg-atlas-panel px-3 py-2.5">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">
+            Planned{plannedTotalMinutes > 0 ? <span className="text-atlas-faint"> — {formatDurationMinutes(plannedTotalMinutes)}</span> : null}
+          </p>
+        </div>
+        <div className="border-r border-b border-atlas-rule bg-atlas-panel px-3 py-2.5">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">
+            Actual{actualTotalMinutes > 0 ? <span className="text-atlas-faint"> — {formatDurationMinutes(actualTotalMinutes)}</span> : null}
+          </p>
+        </div>
 
-      {/* Day rows */}
-      <div className="space-y-2">
+        {/* Day rows */}
         {days.map((day, i) => {
           const dateKey = toDateKey(day)
           const planned = plannedMap.get(dateKey) ?? []
           const actual = actualMap.get(dateKey) ?? []
           const isEmpty = planned.length === 0 && actual.length === 0
           const isToday = toDateKey(new Date()) === dateKey
-
           const dayIllness = illnessEntries.filter((e) => e.start_date <= dateKey && e.end_date >= dateKey)
           const isRestDay = restDaySet.has(dateKey)
           const hasConflict = isRestDay && actual.length > 0
           const dayCamps = campsForDate(dateKey)
+          const inCamp = dayCamps.length > 0
 
-          return (
-            <div key={dateKey} className="space-y-0">
-              {/* Camp indicator bar */}
-              {dayCamps.length > 0 && (
-                <div className="flex items-center gap-2 px-3 py-1 rounded-t-lg bg-blue-50 border border-blue-100 border-b-0 text-[10px] text-blue-500 font-medium">
-                  <span>⛺</span>
-                  {dayCamps.map((c) => c.name).join(', ')}
+          const cellBg = hasConflict
+            ? 'rgba(198,162,74,0.08)'
+            : inCamp
+            ? 'rgba(58,125,74,0.05)'
+            : isToday
+            ? 'rgba(138,46,46,0.05)'
+            : 'transparent'
+
+          const rowOpacity = isEmpty && dayIllness.length === 0 ? 0.38 : 1
+
+          return [
+            /* Day label cell */
+            <div
+              key={`label-${dateKey}`}
+              className="border-r border-b border-atlas-rule"
+              style={{ padding: '12px 14px', backgroundColor: cellBg, opacity: rowOpacity }}
+            >
+              {inCamp && (
+                <p className="font-mono text-[8px] tracking-[0.08em] uppercase mb-1" style={{ color: '#3a7d4a' }}>
+                  ⛺ {dayCamps.map((c) => c.name).join(', ')}
+                </p>
+              )}
+              <p className="font-mono text-[9px] tracking-[0.25em] uppercase text-atlas-faint">{WEEKDAYS[i]}</p>
+              <p className={`font-serif text-[28px] tracking-[-0.02em] leading-none mt-0.5 ${isToday ? 'italic text-atlas-accent' : 'text-atlas-ink'}`}>
+                {day.getDate()}
+              </p>
+              <p className="font-mono text-[9px] tracking-[0.1em] text-atlas-muted mt-0.5">
+                {MONTH_SHORT[day.getMonth()]}
+              </p>
+              {dayIllness.length > 0 && (
+                <div className="flex flex-col gap-0.5 mt-2">
+                  {dayIllness.map((e) => (
+                    <span
+                      key={e.id}
+                      className="font-mono text-[8px] tracking-[0.08em] uppercase leading-none px-1 py-0.5"
+                      style={{ backgroundColor: `${ILLNESS_COLORS[e.category] ?? '#888'}22`, color: ILLNESS_COLORS[e.category] ?? '#888' }}
+                    >
+                      {e.category}
+                    </span>
+                  ))}
                 </div>
               )}
-            <div
-              className={`grid grid-cols-[100px_1fr_1fr] gap-4 border rounded-lg p-3 ${
-                dayCamps.length > 0 ? 'rounded-tl-none rounded-tr-none border-blue-100' : ''
-              } ${
-                hasConflict
-                  ? 'border-amber-200 bg-amber-50'
-                  : isEmpty && dayIllness.length === 0
-                  ? 'border-[#e5e5e5] opacity-40'
-                  : 'border-[#e5e5e5]'
-              }`}
-            >
-              {/* Day label */}
-              <div className="flex flex-col justify-center gap-1">
-                <span className={`text-xs font-medium ${isToday ? 'text-gray-900' : 'text-gray-500'}`}>
-                  {WEEKDAYS[i]}
+              {hasConflict && (
+                <span className="font-mono text-[8px] tracking-[0.05em] uppercase block mt-1" style={{ color: '#c6a24a' }}>
+                  trained on rest
                 </span>
-                <span className="text-xs text-gray-400">
-                  {fmtDateObj(day)}
-                </span>
-                {dayIllness.length > 0 && (
-                  <div className="flex gap-0.5 flex-wrap">
-                    {dayIllness.map((e) => (
-                      <span
-                        key={e.id}
-                        className="text-[9px] font-medium px-1 py-0.5 rounded text-white leading-none"
-                        style={{ backgroundColor: ILLNESS_COLORS[e.category] ?? '#888' }}
-                      >
-                        {e.category}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {hasConflict && (
-                  <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-400 text-white leading-none w-fit">
-                    Trained on rest day
-                  </span>
-                )}
-              </div>
+              )}
+            </div>,
 
-              {/* Planned column */}
-              <div className="space-y-1.5">
-                {isRestDay && (
-                  <button
-                    onClick={() => setSelectedRestDayDate(dateKey)}
-                    className="inline-flex items-center text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full hover:bg-gray-200 transition-colors"
-                  >
-                    🌙 Rest
-                  </button>
-                )}
-                {planned.length === 0 && !isRestDay ? (
-                  <span className="text-xs text-gray-300">—</span>
-                ) : (
-                  planned.map((a) => {
+            /* Planned cell */
+            <div
+              key={`planned-${dateKey}`}
+              className="border-r border-b border-atlas-rule"
+              style={{ padding: '12px 14px 14px', backgroundColor: cellBg, opacity: rowOpacity, minHeight: 72 }}
+            >
+              {isRestDay && (
+                <button
+                  onClick={() => setSelectedRestDayDate(dateKey)}
+                  className="font-mono text-[9px] tracking-[0.1em] uppercase text-atlas-muted hover:text-atlas-ink transition-colors mb-1.5 block"
+                >
+                  🌙 rest day
+                </button>
+              )}
+              {planned.length === 0 && !isRestDay ? (
+                <span className="font-serif italic text-[12px] text-atlas-faint">—</span>
+              ) : (
+                <div className="space-y-1.5">
+                  {planned.map((a) => {
                     const color = getPlannedColor(a.sport_type)
+                    const isComp = a.intensity_type === 'competition'
+                    const isInterval = a.intensity_type === 'interval'
                     return (
-                      <button
-                        key={a.id}
-                        onClick={() => setSelectedPlanned(a)}
-                        className="w-full text-left"
-                      >
+                      <button key={a.id} onClick={() => setSelectedPlanned(a)} className="w-full text-left hover:opacity-80 transition-opacity">
                         <span
-                          className="flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:opacity-80 transition-opacity"
-                          style={{ backgroundColor: `${color}18`, color }}
+                          className={`flex items-center border-l-2 leading-[1.2] ${isComp ? 'atlas-pill-competition border-l-[#b8860b]' : isInterval ? 'atlas-pill-interval border-l-atlas-accent' : ''}`}
+                          style={{
+                            padding: '3px 6px 4px',
+                            ...(!isComp && !isInterval ? { backgroundColor: `${color}20`, borderLeftColor: color } : {}),
+                          }}
                         >
                           <span
-                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className="truncate font-medium">{a.sport_type}</span>
-                          {(a.intensity_type === 'interval' || a.intensity_type === 'speed' || a.intensity_type === 'competition') && (
-                            <ActivityTypeBadge intensityType={a.intensity_type} />
-                          )}
-                          <span className="ml-auto shrink-0 opacity-70">
+                            className={`font-serif italic text-[12px] truncate ${isComp ? 'text-[#b8860b]' : isInterval ? 'text-atlas-accent' : ''}`}
+                            style={!isComp && !isInterval ? { color } : {}}
+                          >
+                            {isComp ? '★ Race' : a.sport_type}
+                          </span>
+                          <span
+                            className="font-mono text-[9px] ml-auto shrink-0 pl-1"
+                            style={{ color: isComp ? '#b8860b' : isInterval ? 'var(--atlas-muted)' : `${color}cc` }}
+                          >
                             {formatDurationMinutes(a.duration_minutes)}
                           </span>
                         </span>
                       </button>
                     )
-                  })
-                )}
-              </div>
+                  })}
+                </div>
+              )}
+            </div>,
 
-              {/* Actual column */}
-              <div className="space-y-1.5">
-                {actual.length === 0 ? (
-                  <span className="text-xs text-gray-300">—</span>
-                ) : (
-                  actual.map((a) => {
+            /* Actual cell */
+            <div
+              key={`actual-${dateKey}`}
+              className="border-r border-b border-atlas-rule"
+              style={{ padding: '12px 14px 14px', backgroundColor: cellBg, opacity: rowOpacity, minHeight: 72 }}
+            >
+              {actual.length === 0 ? (
+                <span className="font-serif italic text-[12px] text-atlas-faint">—</span>
+              ) : (
+                <div className="space-y-1.5">
+                  {actual.map((a) => {
                     const color = getActualColor(a)
+                    const isComp = a.intensity_type === 'competition'
+                    const isInterval = a.intensity_type === 'interval'
+                    const hidden = !isCoach && a.hidden
                     return (
                       <button
                         key={a.id}
                         onClick={() => setSelectedActivityId(a.id)}
-                        className={`w-full text-left ${!isCoach && a.hidden ? 'opacity-40 grayscale' : ''}`}
+                        className={`w-full text-left hover:opacity-80 transition-opacity ${hidden ? 'opacity-40 grayscale' : ''}`}
                       >
                         <span
-                          className="flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:opacity-80 transition-opacity"
-                          style={{ backgroundColor: `${color}18`, color }}
+                          className={`flex items-center border-l-2 leading-[1.2] ${isComp ? 'atlas-pill-competition border-l-[#b8860b]' : isInterval ? 'atlas-pill-interval border-l-atlas-accent' : ''}`}
+                          style={{
+                            padding: '3px 6px 4px',
+                            ...(!isComp && !isInterval ? { backgroundColor: `${color}20`, borderLeftColor: color } : {}),
+                          }}
                         >
                           <span
-                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className="truncate font-medium">{getActivityTitle(a)}</span>
-                          {!isCoach && a.hidden && (
-                            <svg className="w-2.5 h-2.5 flex-shrink-0 opacity-60" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
-                              <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
-                            </svg>
-                          )}
-                          {!a.hidden && (a.intensity_type === 'interval' || a.intensity_type === 'speed' || a.intensity_type === 'competition') && (
-                            <ActivityTypeBadge intensityType={a.intensity_type} />
-                          )}
-                          <span className="ml-auto shrink-0 opacity-70">
+                            className={`font-serif italic text-[12px] truncate ${isComp ? 'text-[#b8860b]' : isInterval ? 'text-atlas-accent' : ''}`}
+                            style={!isComp && !isInterval ? { color } : {}}
+                          >
+                            {getActivityTitle(a)}
+                          </span>
+                          <span
+                            className="font-mono text-[9px] ml-auto shrink-0 pl-1"
+                            style={{ color: isComp ? '#b8860b' : isInterval ? 'var(--atlas-muted)' : `${color}cc` }}
+                          >
                             {formatDurationSeconds(a.moving_time ?? a.elapsed_time)}
                           </span>
                         </span>
                       </button>
                     )
-                  })
-                )}
-              </div>
-            </div>
-            </div>
-          )
+                  })}
+                </div>
+              )}
+            </div>,
+          ]
         })}
       </div>
 

@@ -76,11 +76,11 @@ export function SpeedLineChart({ speedData, isRunning, totalSeconds, highlightIn
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={points} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid vertical={false} stroke="var(--atlas-rule)" strokeDasharray="2 3" />
         <XAxis
           dataKey="t"
           tickFormatter={formatTime}
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace' }}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
@@ -88,7 +88,7 @@ export function SpeedLineChart({ speedData, isRunning, totalSeconds, highlightIn
         <YAxis
           domain={yDomain}
           reversed={isRunning}
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace' }}
           tickLine={false}
           axisLine={false}
           width={40}
@@ -101,18 +101,18 @@ export function SpeedLineChart({ speedData, isRunning, totalSeconds, highlightIn
               : [`${Number(value).toFixed(1)} km/h`, 'Speed']
           }
           labelFormatter={(t) => formatTime(Number(t))}
-          contentStyle={{ fontSize: 11, borderRadius: 6, border: '1px solid #e5e5e5' }}
+          contentStyle={{ fontSize: 10, fontFamily: '"JetBrains Mono", monospace', border: '1px solid var(--atlas-rule)', background: 'var(--atlas-panel)', borderRadius: 0 }}
         />
         <Line
           type="monotone"
           dataKey="v"
-          stroke="#3b82f6"
+          stroke="var(--atlas-accent)"
           strokeWidth={1.5}
           dot={false}
           activeDot={{ r: 3 }}
         />
         {highlightIndex !== undefined && (
-          <ReferenceLine x={highlightIndex} stroke="#9ca3af" strokeWidth={1} strokeDasharray="3 3" />
+          <ReferenceLine x={highlightIndex} stroke="var(--atlas-muted)" strokeWidth={1} strokeDasharray="3 3" />
         )}
       </LineChart>
     </ResponsiveContainer>

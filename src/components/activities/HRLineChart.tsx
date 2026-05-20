@@ -41,12 +41,12 @@ function formatTime(seconds: number): string {
 }
 
 function zoneColorAt(bpm: number, z1: number, z2: number, z3: number, z4: number): string {
-  if (bpm > z4) return '#ef4444'
-  if (bpm > z3) return '#fb923c'
-  if (bpm > z2) return '#facc15'
-  if (bpm > z1) return '#86efac'
-  if (bpm > 99) return '#4ade80'
-  return '#94a3b8'
+  if (bpm > z4) return '#a23b2a'
+  if (bpm > z3) return '#c8703a'
+  if (bpm > z2) return '#c6a24a'
+  if (bpm > z1) return '#7a9c66'
+  if (bpm > 99) return '#9ab48a'
+  return '#6b8aa3'
 }
 
 function buildGradientStops(
@@ -96,18 +96,18 @@ export function HRLineChart({ hrData, totalSeconds, zoneBoundaries, highlightInd
             ))}
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid vertical={false} stroke="var(--atlas-rule)" strokeDasharray="2 3" />
         <XAxis
           dataKey="t"
           tickFormatter={formatTime}
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace' }}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
           domain={[domainMin, domainMax]}
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace' }}
           tickLine={false}
           axisLine={false}
           width={32}
@@ -116,20 +116,21 @@ export function HRLineChart({ hrData, totalSeconds, zoneBoundaries, highlightInd
         <Tooltip
           formatter={(value) => [`${value} bpm`, 'HR']}
           labelFormatter={(t) => formatTime(Number(t))}
-          contentStyle={{ fontSize: 11, borderRadius: 6, border: '1px solid #e5e5e5' }}
+          contentStyle={{ fontSize: 10, fontFamily: '"JetBrains Mono", monospace', border: '1px solid var(--atlas-rule)', background: 'var(--atlas-panel)', borderRadius: 0 }}
         />
         <Area
           type="monotone"
           dataKey="bpm"
-          stroke="#ef4444"
+          stroke="var(--atlas-ink)"
           strokeWidth={1.5}
           fill="url(#hrGradient)"
+          fillOpacity={0.75}
           dot={false}
           activeDot={{ r: 3 }}
           isAnimationActive={false}
         />
         {highlightIndex !== undefined && (
-          <ReferenceLine x={highlightIndex} stroke="#9ca3af" strokeWidth={1} strokeDasharray="3 3" />
+          <ReferenceLine x={highlightIndex} stroke="var(--atlas-muted)" strokeWidth={1} strokeDasharray="3 3" />
         )}
       </AreaChart>
     </ResponsiveContainer>

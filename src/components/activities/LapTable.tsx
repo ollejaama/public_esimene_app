@@ -22,31 +22,30 @@ export function LapTable({ laps }: LapTableProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full">
         <thead>
-          <tr className="text-xs text-gray-400 border-b border-[#f0f0f0]">
-            <th className="text-left pb-2 font-normal">Lap</th>
-            <th className="text-right pb-2 font-normal">Distance</th>
-            <th className="text-right pb-2 font-normal">Time</th>
-            <th className="text-right pb-2 font-normal">Avg Pace</th>
-            <th className="text-right pb-2 font-normal">Avg HR</th>
-            <th className="text-right pb-2 font-normal">Max HR</th>
+          <tr style={{ borderBottom: '1px solid var(--atlas-rule)' }}>
+            {['Lap', 'Distance', 'Time', 'Avg Pace', 'Avg HR', 'Max HR'].map((h, i) => (
+              <th key={h} className={`pb-2 font-mono text-[9px] tracking-[0.15em] uppercase text-atlas-faint font-normal ${i === 0 ? 'text-left' : 'text-right'}`}>
+                {h}
+              </th>
+            ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#f9f9f9]">
+        <tbody>
           {laps.map((lap) => (
-            <tr key={lap.lap_index}>
-              <td className="py-1.5 text-gray-500 text-xs">{lap.lap_index}</td>
-              <td className="py-1.5 text-right font-mono text-xs tabular-nums">{formatDistance(lap.distance)}</td>
-              <td className="py-1.5 text-right font-mono text-xs tabular-nums">
+            <tr key={lap.lap_index} className="border-b border-dotted border-atlas-rule">
+              <td className="py-1.5 font-mono text-[11px] text-atlas-muted">{lap.lap_index}</td>
+              <td className="py-1.5 text-right font-mono text-[11px] tabular-nums text-atlas-ink">{formatDistance(lap.distance)}</td>
+              <td className="py-1.5 text-right font-mono text-[11px] tabular-nums text-atlas-ink">
                 {formatDurationFull(lap.moving_time ?? lap.elapsed_time)}
               </td>
-              <td className="py-1.5 text-right text-xs tabular-nums">{formatPace(lap.average_speed)}</td>
-              <td className="py-1.5 text-right text-xs tabular-nums">
-                {lap.average_hr ? `${Math.round(lap.average_hr)} bpm` : '—'}
+              <td className="py-1.5 text-right font-mono text-[11px] tabular-nums text-atlas-ink">{formatPace(lap.average_speed)}</td>
+              <td className="py-1.5 text-right font-mono text-[11px] tabular-nums text-atlas-ink">
+                {lap.average_hr ? `${Math.round(lap.average_hr)}` : '—'}
               </td>
-              <td className="py-1.5 text-right text-xs tabular-nums">
-                {lap.max_hr ? `${Math.round(lap.max_hr)} bpm` : '—'}
+              <td className="py-1.5 text-right font-mono text-[11px] tabular-nums text-atlas-ink">
+                {lap.max_hr ? `${Math.round(lap.max_hr)}` : '—'}
               </td>
             </tr>
           ))}

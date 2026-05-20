@@ -40,23 +40,18 @@ export function LactateInput({ activityId, initialValues }: LactateInputProps) {
 
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-1.5 px-1">
-        Lactate (mmol/L)
-      </p>
-
-      {/* Existing measurements */}
       {measurements.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2 px-1">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {measurements.map((m) => (
             <span
               key={m.id}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 border border-atlas-rule font-mono text-[11px] text-atlas-ink px-2 py-1"
             >
-              {m.value_mmol} mmol
+              {m.value_mmol} mmol/L
               <button
                 onClick={() => handleDelete(m.id)}
                 disabled={deletingId === m.id}
-                className="text-blue-400 hover:text-blue-700 disabled:opacity-40 leading-none"
+                className="text-atlas-faint hover:text-atlas-ink disabled:opacity-40 leading-none transition-colors"
                 aria-label="Remove"
               >
                 ×
@@ -66,8 +61,7 @@ export function LactateInput({ activityId, initialValues }: LactateInputProps) {
         </div>
       )}
 
-      {/* Add input */}
-      <div className="flex items-center gap-2 px-1">
+      <div className="flex items-center gap-2">
         <input
           type="number"
           step="0.1"
@@ -77,14 +71,14 @@ export function LactateInput({ activityId, initialValues }: LactateInputProps) {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-          className="w-20 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300"
+          className="w-20 border border-atlas-rule bg-transparent font-mono text-[12px] text-atlas-ink px-2 py-1 focus:outline-none focus:border-atlas-muted"
         />
         <button
           onClick={handleAdd}
           disabled={adding || !inputValue}
-          className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-40 transition-colors"
+          className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted hover:text-atlas-ink disabled:opacity-40 transition-colors"
         >
-          {adding ? 'Adding…' : '+ Add'}
+          {adding ? '…' : '+ Add'}
         </button>
       </div>
     </div>

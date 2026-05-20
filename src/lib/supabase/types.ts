@@ -110,6 +110,7 @@ export interface UserSettings {
   show_rpe: boolean
   rpe_scale: 'rpe' | 'borg'
   show_lactate: boolean
+  theme: 'light' | 'dark'
   created_at: string
   updated_at: string
 }

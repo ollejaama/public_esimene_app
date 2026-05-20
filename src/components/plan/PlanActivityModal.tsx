@@ -20,12 +20,8 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'evening'>(activity?.time_of_day ?? initialTimeOfDay)
   const [intensityType, setIntensityType] = useState<'regular' | 'interval' | 'speed' | 'competition'>(activity?.intensity_type ?? 'regular')
   const [sportType, setSportType] = useState(activity?.sport_type ?? PLANNED_SPORT_TYPES[0])
-  const [hours, setHours] = useState(
-    activity ? Math.floor(activity.duration_minutes / 60) : 1
-  )
-  const [minutes, setMinutes] = useState(
-    activity ? activity.duration_minutes % 60 : 0
-  )
+  const [hours, setHours] = useState(activity ? Math.floor(activity.duration_minutes / 60) : 1)
+  const [minutes, setMinutes] = useState(activity ? activity.duration_minutes % 60 : 0)
   const [description, setDescription] = useState(activity?.description ?? '')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -101,92 +97,99 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
   }
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-md">
-      <div className="p-6 space-y-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">
-              {mode === 'add' ? 'Add planned training' : 'Edit planned training'}
-            </h2>
-            <p className="text-xs text-gray-400 mt-0.5">{displayDate}</p>
-          </div>
-          {onToggleRestDay && mode === 'add' && (
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className={`text-xs transition-colors ${isRestDay ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-                🌙 Rest day
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsRestDay((v) => !v)}
-                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${
-                  isRestDay ? 'bg-gray-700' : 'bg-gray-200'
-                }`}
-              >
-                <span className={`inline-block h-4 w-4 mt-0.5 rounded-full bg-white shadow transition-transform ${
-                  isRestDay ? 'translate-x-4' : 'translate-x-0.5'
-                }`} />
-              </button>
-            </div>
-          )}
+    <Modal open onClose={onClose} maxWidth="max-w-md" hideCloseButton>
+      {/* Header band */}
+      <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-atlas-rule">
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted">
+            {mode === 'add' ? 'Plan · add session' : 'Plan · edit session'}
+          </p>
+          <h2 className="font-serif text-[20px] tracking-[-0.02em] text-atlas-ink mt-0.5">
+            Planned training
+          </h2>
+          <p className="font-serif italic text-[12px] text-atlas-muted mt-0.5">{displayDate}</p>
         </div>
+        <div className="flex items-center gap-3 mt-1">
+          {onToggleRestDay && mode === 'add' && (
+            <button
+              type="button"
+              onClick={() => setIsRestDay((v) => !v)}
+              className={`font-mono text-[9px] tracking-[0.1em] uppercase transition-colors ${isRestDay ? 'text-atlas-muted' : 'text-atlas-faint hover:text-atlas-muted'}`}
+            >
+              {isRestDay ? '🌙 rest day' : '○ rest day'}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center border border-atlas-rule text-atlas-muted hover:text-atlas-ink hover:border-atlas-muted font-mono text-sm leading-none transition-colors"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+      </div>
 
+      {/* Body */}
+      <div className="px-6 py-5 space-y-5">
         {!isRestDay && (
           <>
-            {/* Morning / Evening toggle */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setTimeOfDay('morning')}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                  timeOfDay === 'morning'
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'bg-white text-gray-500 border-[#e5e5e5] hover:border-gray-400'
-                }`}
-              >
-                ☀ Morning
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimeOfDay('evening')}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                  timeOfDay === 'evening'
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'bg-white text-gray-500 border-[#e5e5e5] hover:border-gray-400'
-                }`}
-              >
-                ☽ Evening
-              </button>
+            {/* Time of day */}
+            <div>
+              <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-2">Time</p>
+              <div className="flex gap-1.5">
+                {(['morning', 'evening'] as const).map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setTimeOfDay(val)}
+                    className={`flex-1 font-mono text-[10px] tracking-[0.12em] uppercase py-[5px] border transition-colors ${
+                      timeOfDay === val
+                        ? 'bg-atlas-selected text-atlas-selectedFg border-atlas-selected'
+                        : 'bg-transparent text-atlas-ink border-atlas-rule hover:border-atlas-muted'
+                    }`}
+                  >
+                    {val === 'morning' ? '☀ Morning' : '☽ Evening'}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Intensity type */}
-            <div className="flex gap-2">
-              {(['regular', 'interval', 'speed', 'competition'] as const).map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setIntensityType(val)}
-                  className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                    intensityType === val
-                      ? val === 'competition'
-                        ? 'bg-amber-500 text-white border-amber-500'
-                        : 'bg-gray-900 text-white border-gray-900'
-                      : val === 'competition'
-                        ? 'bg-white text-amber-600 border-amber-200 hover:border-amber-400'
-                        : 'bg-white text-gray-500 border-[#e5e5e5] hover:border-gray-400'
-                  }`}
-                >
-                  {val === 'competition' ? '★ Comp' : val.charAt(0).toUpperCase() + val.slice(1)}
-                </button>
-              ))}
+            <div>
+              <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-2">Intensity</p>
+              <div className="flex gap-1.5">
+                {(['regular', 'interval', 'speed', 'competition'] as const).map((val) => {
+                  const isComp = val === 'competition'
+                  const active = intensityType === val
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setIntensityType(val)}
+                      className={`flex-1 font-mono text-[10px] tracking-[0.08em] uppercase py-[5px] border transition-colors ${
+                        active
+                          ? isComp
+                            ? 'bg-[#b8860b] text-[#f4ede0] border-[#b8860b]'
+                            : 'bg-atlas-selected text-atlas-selectedFg border-atlas-selected'
+                          : isComp
+                            ? 'text-[#b8860b] border-atlas-rule hover:border-[#b8860b]'
+                            : 'text-atlas-ink border-atlas-rule hover:border-atlas-muted'
+                      }`}
+                    >
+                      {val === 'competition' ? '★ Comp' : val.charAt(0).toUpperCase() + val.slice(1)}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             {/* Sport type */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-gray-600">Sport type</label>
+            <div>
+              <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-2">Sport</p>
               <select
                 value={sportType}
                 onChange={(e) => setSportType(e.target.value)}
-                className="w-full border border-[#e5e5e5] rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                className="w-full border border-atlas-rule bg-transparent text-atlas-ink font-serif text-[13px] px-3 py-2 focus:outline-none focus:border-atlas-muted appearance-none"
               >
                 {PLANNED_SPORT_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -195,9 +198,9 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
             </div>
 
             {/* Duration */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-gray-600">Duration</label>
-              <div className="flex items-center gap-2">
+            <div>
+              <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-2">Duration</p>
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <input
                     type="number"
@@ -205,9 +208,9 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
                     max={23}
                     value={hours}
                     onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="w-16 border border-[#e5e5e5] rounded-md px-2 py-2 text-sm text-gray-900 text-center focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    className="w-16 border border-atlas-rule bg-transparent text-atlas-ink font-mono text-[13px] text-center py-2 focus:outline-none focus:border-atlas-muted"
                   />
-                  <span className="text-xs text-gray-500">h</span>
+                  <span className="font-mono text-[10px] text-atlas-muted">h</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <input
@@ -216,53 +219,51 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
                     max={59}
                     value={minutes}
                     onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
-                    className="w-16 border border-[#e5e5e5] rounded-md px-2 py-2 text-sm text-gray-900 text-center focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    className="w-16 border border-atlas-rule bg-transparent text-atlas-ink font-mono text-[13px] text-center py-2 focus:outline-none focus:border-atlas-muted"
                   />
-                  <span className="text-xs text-gray-500">min</span>
+                  <span className="font-mono text-[10px] text-atlas-muted">min</span>
                 </div>
               </div>
             </div>
 
             {/* Description */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-gray-600">Description</label>
+            <div>
+              <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-2">Notes</p>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                placeholder="Optional notes..."
-                className="w-full border border-[#e5e5e5] rounded-md px-3 py-2 text-sm text-gray-900 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400 placeholder:text-gray-300"
+                placeholder="Optional notes…"
+                className="w-full border border-atlas-rule bg-transparent text-atlas-ink font-serif text-[13px] px-3 py-2 resize-none focus:outline-none focus:border-atlas-muted placeholder:text-atlas-faint"
               />
             </div>
           </>
         )}
 
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && <p className="font-mono text-[10px] text-[#a23b2a]">{error}</p>}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between pt-2 border-t border-atlas-rule">
           {mode === 'edit' ? (
             <button
               onClick={handleDelete}
               disabled={deleting || saving}
-              className="text-xs text-red-500 hover:text-red-700 transition-colors disabled:opacity-40"
+              className="font-mono text-[10px] tracking-[0.1em] uppercase text-[#a23b2a] hover:opacity-70 transition-opacity disabled:opacity-40"
             >
               {deleting ? 'Deleting…' : 'Delete'}
             </button>
-          ) : (
-            <span />
-          )}
-          <div className="flex items-center gap-3">
+          ) : <span />}
+          <div className="flex items-center gap-4">
             <button
               onClick={onClose}
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted hover:text-atlas-ink transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving || deleting}
-              className="bg-gray-900 text-white text-sm px-4 py-1.5 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-40"
+              className="font-mono text-[10px] tracking-[0.1em] uppercase bg-atlas-ink text-atlas-bg px-4 py-2 hover:opacity-80 transition-opacity disabled:opacity-40"
             >
               {saving ? 'Saving…' : 'Save'}
             </button>

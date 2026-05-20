@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Modal } from '@/components/ui/Modal'
 import { TrainingCamp } from '@/lib/supabase/types'
 
 interface CampModalProps {
@@ -71,88 +72,104 @@ export function CampModal({ mode, camp, defaultStartDate, onClose, onSaved }: Ca
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">
-          {mode === 'add' ? 'Add training camp' : 'Edit training camp'}
-        </h2>
+    <Modal open onClose={onClose} maxWidth="max-w-sm" hideCloseButton>
+      {/* Header band */}
+      <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-atlas-rule">
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted">Plan · camp</p>
+          <h2 className="font-serif text-[20px] tracking-[-0.02em] text-atlas-ink mt-0.5">
+            ⛺ {mode === 'add' ? 'Add camp' : 'Edit camp'}
+          </h2>
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-1 w-7 h-7 flex items-center justify-center border border-atlas-rule text-atlas-muted hover:text-atlas-ink hover:border-atlas-muted font-mono text-sm leading-none transition-colors"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
 
-        <div className="space-y-3 mb-5">
+      {/* Body */}
+      <div className="px-6 py-5 space-y-4">
+        {/* Name */}
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-2">Name</p>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Spring camp"
+            className="w-full border border-atlas-rule bg-transparent text-atlas-ink font-serif text-[13px] px-3 py-2 focus:outline-none focus:border-atlas-muted placeholder:text-atlas-faint"
+          />
+        </div>
+
+        {/* Dates */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Camp name</label>
+            <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-2">Start</p>
             <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Spring camp"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full border border-atlas-rule bg-transparent text-atlas-ink font-mono text-[12px] px-3 py-2 focus:outline-none focus:border-atlas-muted"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Start date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">End date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              placeholder="Location, goals, etc."
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-2">End</p>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full border border-atlas-rule bg-transparent text-atlas-ink font-mono text-[12px] px-3 py-2 focus:outline-none focus:border-atlas-muted"
             />
           </div>
         </div>
 
-        {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+        {/* Notes */}
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-faint mb-2">Notes</p>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            placeholder="Location, goals, etc."
+            className="w-full border border-atlas-rule bg-transparent text-atlas-ink font-serif text-[13px] px-3 py-2 resize-none focus:outline-none focus:border-atlas-muted placeholder:text-atlas-faint"
+          />
+        </div>
 
-        <div className="flex items-center gap-2">
+        {error && <p className="font-mono text-[10px] text-[#a23b2a]">{error}</p>}
+
+        {/* Actions */}
+        <div className="flex items-center pt-2 border-t border-atlas-rule">
           {mode === 'edit' && (
             <button
               onClick={handleDelete}
               disabled={loading}
-              className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
-                confirmDelete
-                  ? 'bg-red-500 text-white border-red-500 hover:bg-red-600'
-                  : 'text-red-500 border-red-200 hover:bg-red-50'
-              }`}
+              className={`font-mono text-[10px] tracking-[0.1em] uppercase transition-opacity disabled:opacity-40 ${confirmDelete ? 'text-[#a23b2a] font-bold' : 'text-[#a23b2a] hover:opacity-70'}`}
             >
               {confirmDelete ? 'Confirm delete' : 'Delete'}
             </button>
           )}
           <div className="flex-1" />
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="text-xs px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Saving…' : 'Save'}
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted hover:text-atlas-ink transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="font-mono text-[10px] tracking-[0.1em] uppercase bg-atlas-ink text-atlas-bg px-4 py-2 hover:opacity-80 transition-opacity disabled:opacity-40"
+            >
+              {loading ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

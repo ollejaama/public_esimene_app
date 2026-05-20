@@ -37,22 +37,22 @@ export function ElevationChart({ elevationData, totalSeconds, highlightIndex }: 
       <AreaChart data={points} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
         <defs>
           <linearGradient id="elevGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#22c55e" stopOpacity={1} />
-            <stop offset="100%" stopColor="#bbf7d0" stopOpacity={1} />
+            <stop offset="0%"   stopColor="#7a9c66" stopOpacity={0.7} />
+            <stop offset="100%" stopColor="#7a9c66" stopOpacity={0.1} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid vertical={false} stroke="var(--atlas-rule)" strokeDasharray="2 3" />
         <XAxis
           dataKey="t"
           tickFormatter={formatTime}
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace' }}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
           domain={['auto', 'auto']}
-          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          tick={{ fontSize: 9, fill: 'var(--atlas-faint)', fontFamily: '"JetBrains Mono", monospace' }}
           tickLine={false}
           axisLine={false}
           width={40}
@@ -61,12 +61,12 @@ export function ElevationChart({ elevationData, totalSeconds, highlightIndex }: 
         <Tooltip
           formatter={(value) => [`${Math.round(Number(value))} m`, 'Elevation']}
           labelFormatter={(t) => formatTime(Number(t))}
-          contentStyle={{ fontSize: 11, borderRadius: 6, border: '1px solid #e5e5e5' }}
+          contentStyle={{ fontSize: 10, fontFamily: '"JetBrains Mono", monospace', border: '1px solid var(--atlas-rule)', background: 'var(--atlas-panel)', borderRadius: 0 }}
         />
         <Area
           type="monotone"
           dataKey="elev"
-          stroke="#16a34a"
+          stroke="#7a9c66"
           strokeWidth={1.5}
           fill="url(#elevGradient)"
           dot={false}
@@ -74,7 +74,7 @@ export function ElevationChart({ elevationData, totalSeconds, highlightIndex }: 
           isAnimationActive={false}
         />
         {highlightIndex !== undefined && (
-          <ReferenceLine x={highlightIndex} stroke="#9ca3af" strokeWidth={1} strokeDasharray="3 3" />
+          <ReferenceLine x={highlightIndex} stroke="var(--atlas-muted)" strokeWidth={1} strokeDasharray="3 3" />
         )}
       </AreaChart>
     </ResponsiveContainer>

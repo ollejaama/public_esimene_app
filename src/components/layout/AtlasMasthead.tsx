@@ -29,6 +29,11 @@ export function AtlasMasthead({ athleteName, role }: { athleteName?: string; rol
     setTheme(next)
     document.documentElement.dataset.atlasTheme = next
     localStorage.setItem('atlas-theme', next)
+    fetch('/api/settings/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: next }),
+    }).catch(() => {})
   }
 
   const chapter = Object.entries(CHAPTERS).find(([path]) => pathname.startsWith(path))
