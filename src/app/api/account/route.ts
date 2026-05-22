@@ -8,6 +8,12 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const db = createServiceClient()
+
+  // Delete profiles row first so activities cascade-delete cleanly.
+  // user_profiles is handled by auth.users ON DELETE CASCADE.
+  await db.from('profiles').delete().eq('user_id', session.userId)
+  await db.from('profiles').delete().eq('auth_user_id', session.userId)
+
   const { error } = await db.auth.admin.deleteUser(session.userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

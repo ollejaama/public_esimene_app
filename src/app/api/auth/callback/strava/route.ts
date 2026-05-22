@@ -32,10 +32,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         .from('profiles')
         .select('user_id')
         .eq('strava_athlete_id', tokens.athlete.id)
-        .single()
+        .maybeSingle()
       userId = existing?.user_id ?? uuidv4()
       needsSessionCookie = true
     }
+
+    // If another profile row already holds this strava_athlete_id (e.g. from a
+    // deleted/legacy account), remove it first so the unique constraint doesn't
+    // block the upsert.  Cascade-delete removes its activities automatically.
+    await db
+      .from('profiles')
+      .delete()
+      .eq('strava_athlete_id', tokens.athlete.id)
+      .neq('user_id', userId)
 
     await db.from('profiles').upsert(
       {

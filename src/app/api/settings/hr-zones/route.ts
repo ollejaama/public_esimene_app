@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { getSessionFromRequest } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+async function getUserId(req: NextRequest): Promise<string | null> {
   const session = await getSessionFromRequest(req)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (session) return session.userId
+
+  // Fallback: Supabase Auth session (bridge cookie may have expired)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} } }
+  )
+  const { data: { user } } = await supabase.auth.getUser()
+  return user?.id ?? null
+}
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  const userId = await getUserId(req)
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { userId } = session
   const db = createServiceClient()
 
   const { error } = await db.from('hr_zone_settings').upsert(
