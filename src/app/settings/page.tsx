@@ -4,6 +4,7 @@ import { HRZoneForm } from '@/components/settings/HRZoneForm'
 import { UserSettingsForm } from '@/components/settings/UserSettingsForm'
 import { StravaSyncSection } from '@/components/settings/StravaSyncSection'
 import { TeamsCoachesSection } from '@/components/settings/TeamsCoachesSection'
+import { DeleteAccountButton } from '@/components/settings/DeleteAccountButton'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getPendingInvitesForAthlete, getAthleteCoachInfo } from '@/lib/coach'
@@ -91,6 +92,11 @@ export default async function SettingsPage() {
             coach={coachInfo.coach}
             team={coachInfo.team}
           />
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Danger zone</h2>
+          <DeleteAccountButton />
         </Card>
 
       </div>
