@@ -35,6 +35,7 @@ export function Sidebar({ role = 'athlete', viewingAthleteId, viewingAthleteName
     const base = `/coach/athlete/${viewingAthleteId}`
     const calendarActive = pathname === base || pathname === `${base}/`
     const statsActive = pathname.startsWith(`${base}/statistics`)
+    const planActive = pathname.startsWith(`${base}/plan`)
     return (
       <aside className="fixed left-0 top-[53px] h-[calc(100vh-53px)] w-48 border-r border-atlas-rule bg-atlas-bg flex flex-col z-40">
         <div className="px-6 pt-5 pb-2 border-b border-atlas-rule">
@@ -70,6 +71,16 @@ export function Sidebar({ role = 'athlete', viewingAthleteId, viewingAthleteName
             }`}
           >
             Statistics
+          </Link>
+          <Link
+            href={`${base}/plan`}
+            className={`block px-6 py-[7px] font-serif text-sm -ml-[2px] border-l-2 transition-colors ${
+              planActive
+                ? 'italic text-atlas-ink border-atlas-accent'
+                : 'text-atlas-muted border-transparent hover:text-atlas-ink'
+            }`}
+          >
+            Plan
           </Link>
         </nav>
         <div className="px-6 py-4 border-t border-atlas-rule">

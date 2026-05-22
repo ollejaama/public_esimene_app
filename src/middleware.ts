@@ -59,8 +59,9 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     return response
   }
 
-  // Not authenticated — redirect to login
-  return NextResponse.redirect(new URL('/login', req.url))
+  // Not authenticated — redirect to login, preserving the destination
+  const next = req.nextUrl.pathname + req.nextUrl.search
+  return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(next)}`, req.url))
 }
 
 export const config = {

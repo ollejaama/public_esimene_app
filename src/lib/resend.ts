@@ -60,6 +60,20 @@ export async function sendInviteAcceptedEmail(
   await resend.emails.send({ from: FROM, to: toEmail, subject, text })
 }
 
+export async function sendPlanNotificationEmail(
+  toEmail: string,
+  coachName: string,
+  teamName: string,
+  appUrl: string
+) {
+  const resend = getResend()
+  if (!resend) return
+
+  const subject = `${coachName} has updated the ${teamName} training plan`
+  const text = `${coachName} has updated the training plan for ${teamName}.\n\nLog in to Atlas to view the latest plan.\n\n${appUrl}/plan`
+  await resend.emails.send({ from: FROM, to: toEmail, subject, text })
+}
+
 export async function sendPasswordResetEmail(email: string, resetLink: string) {
   const resend = getResend()
   if (!resend) return

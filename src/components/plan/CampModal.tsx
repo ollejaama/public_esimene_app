@@ -10,9 +10,11 @@ interface CampModalProps {
   defaultStartDate?: string
   onClose: () => void
   onSaved: () => void
+  apiBase?: string // defaults to /api/training-camps
+  extraBody?: Record<string, unknown> // extra fields merged into POST body (e.g. teamId)
 }
 
-export function CampModal({ mode, camp, defaultStartDate, onClose, onSaved }: CampModalProps) {
+export function CampModal({ mode, camp, defaultStartDate, onClose, onSaved, apiBase = '/api/training-camps', extraBody }: CampModalProps) {
   const [name, setName] = useState(camp?.name ?? '')
   const [startDate, setStartDate] = useState(camp?.start_date ?? defaultStartDate ?? '')
   const [endDate, setEndDate] = useState(camp?.end_date ?? '')
@@ -34,14 +36,14 @@ export function CampModal({ mode, camp, defaultStartDate, onClose, onSaved }: Ca
     setError(null)
     try {
       if (mode === 'add') {
-        const res = await fetch('/api/training-camps', {
+        const res = await fetch(apiBase, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name.trim(), start_date: startDate, end_date: endDate, notes: notes.trim() || null }),
+          body: JSON.stringify({ name: name.trim(), start_date: startDate, end_date: endDate, notes: notes.trim() || null, ...extraBody }),
         })
         if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to save')
       } else {
-        const res = await fetch(`/api/training-camps/${camp!.id}`, {
+        const res = await fetch(`${apiBase}/${camp!.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: name.trim(), start_date: startDate, end_date: endDate, notes: notes.trim() || null }),
@@ -61,7 +63,7 @@ export function CampModal({ mode, camp, defaultStartDate, onClose, onSaved }: Ca
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/training-camps/${camp!.id}`, { method: 'DELETE' })
+      const res = await fetch(`${apiBase}/${camp!.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete')
       onSaved()
     } catch (e: unknown) {

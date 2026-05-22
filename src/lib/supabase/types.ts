@@ -217,3 +217,33 @@ export interface Notification {
   read_at: string | null
   created_at: string
 }
+
+export interface TeamPlannedActivity {
+  id: string
+  team_id: string
+  date: string // 'YYYY-MM-DD'
+  sport_type: string
+  duration_minutes: number
+  description: string | null
+  time_of_day: 'morning' | 'evening'
+  intensity_type: 'regular' | 'interval' | 'speed' | 'competition'
+  created_at: string
+  updated_at: string
+}
+
+export interface TeamPlannedRestDay {
+  id: string
+  team_id: string
+  date: string // 'YYYY-MM-DD'
+  created_at: string
+}
+
+export interface TeamTrainingCamp {
+  id: string
+  team_id: string
+  name: string
+  start_date: string // 'YYYY-MM-DD'
+  end_date: string   // 'YYYY-MM-DD'
+  notes: string | null
+  created_at: string
+}

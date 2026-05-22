@@ -7,10 +7,11 @@ export const metadata = { title: 'Sign in — Atlas' }
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string; reset?: string }
+  searchParams: { error?: string; reset?: string; next?: string }
 }) {
   const error = searchParams.error
   const didReset = searchParams.reset === 'true'
+  const next = searchParams.next
 
   return (
     <div className="w-full max-w-sm">
@@ -24,7 +25,10 @@ export default function LoginPage({
       </h1>
       <p className="font-sans text-[13px] text-atlas-muted mb-8">
         Don&rsquo;t have an account?{' '}
-        <Link href="/signup" className="text-atlas-ink underline underline-offset-2">
+        <Link
+          href={next ? `/signup?next=${encodeURIComponent(next)}` : '/signup'}
+          className="text-atlas-ink underline underline-offset-2"
+        >
           Sign up
         </Link>
       </p>
@@ -44,6 +48,8 @@ export default function LoginPage({
       )}
 
       <form action={login} className="flex flex-col gap-4 mb-6">
+        {next && <input type="hidden" name="next" value={next} />}
+
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="email"
@@ -111,7 +117,7 @@ export default function LoginPage({
         <div className="flex-1 h-px bg-atlas-rule" />
       </div>
 
-      <OAuthButtons />
+      <OAuthButtons next={next} />
     </div>
   )
 }

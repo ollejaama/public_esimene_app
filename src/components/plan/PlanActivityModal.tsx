@@ -14,9 +14,11 @@ interface PlanActivityModalProps {
   onSaved: () => void
   initialIsRestDay?: boolean
   onToggleRestDay?: (isRest: boolean) => Promise<void>
+  apiBase?: string // defaults to /api/planned-activities
+  extraBody?: Record<string, unknown> // merged into POST body (e.g. teamId)
 }
 
-export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'morning', onClose, onSaved, initialIsRestDay, onToggleRestDay }: PlanActivityModalProps) {
+export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'morning', onClose, onSaved, initialIsRestDay, onToggleRestDay, apiBase = '/api/planned-activities', extraBody }: PlanActivityModalProps) {
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'evening'>(activity?.time_of_day ?? initialTimeOfDay)
   const [intensityType, setIntensityType] = useState<'regular' | 'interval' | 'speed' | 'competition'>(activity?.intensity_type ?? 'regular')
   const [sportType, setSportType] = useState(activity?.sport_type ?? PLANNED_SPORT_TYPES[0])
@@ -49,16 +51,16 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
       return
     }
 
-    const body = { date, sport_type: sportType, duration_minutes, description: description || null, time_of_day: timeOfDay, intensity_type: intensityType }
+    const body = { date, sport_type: sportType, duration_minutes, description: description || null, time_of_day: timeOfDay, intensity_type: intensityType, ...extraBody }
 
     try {
       const res = mode === 'add'
-        ? await fetch('/api/planned-activities', {
+        ? await fetch(apiBase, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
           })
-        : await fetch(`/api/planned-activities/${activity!.id}`, {
+        : await fetch(`${apiBase}/${activity!.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -82,7 +84,7 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
     setError(null)
     setDeleting(true)
     try {
-      const res = await fetch(`/api/planned-activities/${activity.id}`, { method: 'DELETE' })
+      const res = await fetch(`${apiBase}/${activity.id}`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json()
         setError(data.error ?? 'Something went wrong.')

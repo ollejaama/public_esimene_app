@@ -7,16 +7,18 @@ interface WeekNavigatorProps {
   week: number
   year: number
   basePath?: string
+  extraParams?: string // e.g. "planView=team" — appended to the query string
 }
 
-export function WeekNavigator({ week, year, basePath = '/dashboard' }: WeekNavigatorProps) {
+export function WeekNavigator({ week, year, basePath = '/dashboard', extraParams }: WeekNavigatorProps) {
   const router = useRouter()
 
   function navigate(offset: number) {
     const weekStart = getWeekStart(year, week)
     weekStart.setDate(weekStart.getDate() + offset * 7)
     const { week: newWeek, year: newYear } = getISOWeek(weekStart)
-    router.push(`${basePath}?week=${newWeek}&year=${newYear}`)
+    const extra = extraParams ? `${extraParams}&` : ''
+    router.push(`${basePath}?${extra}week=${newWeek}&year=${newYear}`)
   }
 
   return (

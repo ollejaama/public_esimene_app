@@ -164,6 +164,12 @@ export function CoachDashboard({ athletes, teams, pendingInvites: initialInvites
               <div className="flex items-baseline justify-between mb-3">
                 <h3 className="font-serif text-[18px] text-atlas-ink">{team.name}</h3>
                 <div className="flex gap-3">
+                  <Link
+                    href={`/coach/team/${team.id}/plan`}
+                    className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted hover:text-atlas-ink transition-colors"
+                  >
+                    Edit plan
+                  </Link>
                   <button
                     onClick={() => setShowInvite(true)}
                     className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-muted hover:text-atlas-ink transition-colors"

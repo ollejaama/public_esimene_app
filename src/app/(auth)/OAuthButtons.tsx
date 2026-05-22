@@ -2,14 +2,13 @@
 
 import { createAuthBrowserClient } from '@/lib/supabase/browser'
 
-export function OAuthButtons() {
+export function OAuthButtons({ next }: { next?: string }) {
   const supabase = createAuthBrowserClient()
 
   const signInWith = (provider: 'google' | 'apple') => {
-    supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
-    })
+    const base = `${window.location.origin}/api/auth/callback`
+    const redirectTo = next ? `${base}?next=${encodeURIComponent(next)}` : base
+    supabase.auth.signInWithOAuth({ provider, options: { redirectTo } })
   }
 
   return (

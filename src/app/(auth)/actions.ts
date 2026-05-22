@@ -44,12 +44,14 @@ export async function login(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const keepSignedIn = formData.get('keepSignedIn') === 'on'
+  const nextParam = formData.get('next') as string | null
 
   const supabase = makeSupabaseClient()
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`)
+    const next = nextParam ? `&next=${encodeURIComponent(nextParam)}` : ''
+    redirect(`/login?error=${encodeURIComponent(error.message)}${next}`)
   }
 
   const user = data.user
@@ -68,7 +70,15 @@ export async function login(formData: FormData) {
   )
 
   await setBridgeCookie(user.id, role, keepSignedIn)
-  redirect(role === 'coach' ? '/coach' : '/activities')
+
+  // Redirect to `next` if it's a safe relative path, otherwise role default
+  const destination =
+    nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
+      ? nextParam
+      : role === 'coach'
+        ? '/coach'
+        : '/activities'
+  redirect(destination)
 }
 
 export async function signUp(formData: FormData) {
