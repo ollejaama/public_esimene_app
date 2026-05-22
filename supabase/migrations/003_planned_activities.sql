@@ -4,7 +4,7 @@
 -- ============================================================
 
 CREATE TABLE public.planned_activities (
-  id               uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          uuid NOT NULL REFERENCES public.profiles(user_id) ON DELETE CASCADE,
   date             date NOT NULL,
   sport_type       text NOT NULL,

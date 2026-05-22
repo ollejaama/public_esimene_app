@@ -166,3 +166,54 @@ export interface SessionPayload {
   stravaAthleteId: number
   role: 'athlete' | 'coach'
 }
+
+export interface UserProfile {
+  id: string
+  display_name: string | null
+  role: 'athlete' | 'coach'
+  avatar_url: string | null
+  welcome_sent: boolean
+  created_at: string
+}
+
+export interface Team {
+  id: string
+  name: string
+  coach_id: string
+  created_at: string
+}
+
+export interface TeamMember {
+  id: string
+  team_id: string
+  athlete_id: string
+  joined_at: string
+}
+
+export interface CoachAthleteLink {
+  id: string
+  coach_id: string
+  athlete_id: string
+  created_at: string
+}
+
+export interface Invite {
+  id: string
+  invited_email: string
+  invited_user_id: string | null
+  invited_by: string
+  team_id: string | null
+  token: string
+  expires_at: string
+  accepted_at: string | null
+  created_at: string
+}
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: string
+  payload: Record<string, unknown>
+  read_at: string | null
+  created_at: string
+}

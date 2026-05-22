@@ -7,6 +7,7 @@ import { useSyncProgress } from '@/hooks/useSyncProgress'
 
 interface StravaSyncSectionProps {
   lastSyncedAt: string | null
+  isStravaConnected: boolean
 }
 
 function formatSyncDate(iso: string | null): string {
@@ -17,7 +18,7 @@ function formatSyncDate(iso: string | null): string {
   }).format(new Date(iso))
 }
 
-export function StravaSyncSection({ lastSyncedAt }: StravaSyncSectionProps) {
+export function StravaSyncSection({ lastSyncedAt, isStravaConnected }: StravaSyncSectionProps) {
   const [syncing, setSyncing] = useState(false)
   const [lastSyncDisplay, setLastSyncDisplay] = useState(formatSyncDate(lastSyncedAt))
   const [forceOverwrite, setForceOverwrite] = useState(false)
@@ -61,6 +62,23 @@ export function StravaSyncSection({ lastSyncedAt }: StravaSyncSectionProps) {
   const showProgress = syncing && progress.status !== 'idle'
   if (syncing && (progress.status === 'complete' || progress.status === 'error')) {
     setTimeout(() => setSyncing(false), 3000)
+  }
+
+  if (!isStravaConnected) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-gray-500">No Strava account connected.</p>
+        <a
+          href="/api/auth/strava?next=/settings"
+          className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 border border-gray-300 text-gray-700 hover:border-gray-500 transition-colors"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.169" />
+          </svg>
+          Connect Strava
+        </a>
+      </div>
+    )
   }
 
   return (

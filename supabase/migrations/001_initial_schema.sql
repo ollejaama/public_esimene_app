@@ -3,8 +3,6 @@
 -- Run this in your Supabase SQL Editor
 -- ============================================================
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- ============================================================
 -- PROFILES
 -- Standalone user identity — no Supabase Auth dependency.
@@ -12,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- in the session cookie. Service role key used for all queries.
 -- ============================================================
 CREATE TABLE public.profiles (
-  id                      uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id                 uuid NOT NULL UNIQUE,
   strava_athlete_id       bigint NOT NULL UNIQUE,
   strava_access_token     text NOT NULL,
@@ -26,7 +24,7 @@ CREATE TABLE public.profiles (
 -- ACTIVITIES
 -- ============================================================
 CREATE TABLE public.activities (
-  id                    uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id               uuid NOT NULL REFERENCES public.profiles(user_id) ON DELETE CASCADE,
   strava_id             bigint NOT NULL,
   name                  text NOT NULL,
@@ -55,7 +53,7 @@ CREATE INDEX activities_sport_type_idx ON public.activities (user_id, sport_type
 -- hr_data: int[] — one BPM value per second of activity
 -- ============================================================
 CREATE TABLE public.activity_hr_streams (
-  id          uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   activity_id uuid NOT NULL REFERENCES public.activities(id) ON DELETE CASCADE,
   user_id     uuid NOT NULL,
   hr_data     jsonb NOT NULL,
@@ -67,7 +65,7 @@ CREATE TABLE public.activity_hr_streams (
 -- latlng_data: [lat, lng][][] — one coordinate pair per second
 -- ============================================================
 CREATE TABLE public.activity_gps_streams (
-  id          uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   activity_id uuid NOT NULL REFERENCES public.activities(id) ON DELETE CASCADE,
   user_id     uuid NOT NULL,
   latlng_data jsonb NOT NULL,
@@ -79,7 +77,7 @@ CREATE TABLE public.activity_gps_streams (
 -- zone5 is implicitly everything above zone4_max
 -- ============================================================
 CREATE TABLE public.hr_zone_settings (
-  id          uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     uuid NOT NULL UNIQUE,
   zone1_max   int NOT NULL DEFAULT 130,
   zone2_max   int NOT NULL DEFAULT 148,

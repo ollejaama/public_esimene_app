@@ -3,8 +3,10 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { HRZoneForm } from '@/components/settings/HRZoneForm'
 import { UserSettingsForm } from '@/components/settings/UserSettingsForm'
 import { StravaSyncSection } from '@/components/settings/StravaSyncSection'
+import { TeamsCoachesSection } from '@/components/settings/TeamsCoachesSection'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getPendingInvitesForAthlete, getAthleteCoachInfo } from '@/lib/coach'
 import { Card } from '@/components/ui/Card'
 import { redirect } from 'next/navigation'
 
@@ -29,10 +31,15 @@ export default async function SettingsPage() {
 
   const db = createServiceClient()
 
-  const [{ data: zoneData }, { data: profileData }, { data: userSettingsData }] = await Promise.all([
+  const { data: { user: authUser } } = await db.auth.admin.getUserById(session.userId)
+  const athleteEmail = authUser?.email ?? ''
+
+  const [{ data: zoneData }, { data: profileData }, { data: userSettingsData }, pendingInvites, coachInfo] = await Promise.all([
     db.from('hr_zone_settings').select('*').eq('user_id', session.userId).maybeSingle(),
-    db.from('profiles').select('last_synced_at').eq('user_id', session.userId).single(),
+    db.from('profiles').select('last_synced_at').eq('user_id', session.userId).maybeSingle(),
     db.from('user_settings').select('*').eq('user_id', session.userId).maybeSingle(),
+    getPendingInvitesForAthlete(session.userId, athleteEmail),
+    getAthleteCoachInfo(session.userId),
   ])
 
   const zones = zoneData
@@ -71,7 +78,19 @@ export default async function SettingsPage() {
 
         <Card className="p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Strava Sync</h2>
-          <StravaSyncSection lastSyncedAt={profileData?.last_synced_at ?? null} />
+          <StravaSyncSection
+            lastSyncedAt={profileData?.last_synced_at ?? null}
+            isStravaConnected={!!profileData}
+          />
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Teams &amp; Coaches</h2>
+          <TeamsCoachesSection
+            pendingInvites={pendingInvites}
+            coach={coachInfo.coach}
+            team={coachInfo.team}
+          />
         </Card>
 
       </div>

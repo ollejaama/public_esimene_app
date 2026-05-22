@@ -88,16 +88,21 @@ export default function LandingPage({
             Bring your Strava history. Activities will sync, sort themselves,
             and quietly accumulate into a season.
           </p>
-          <Link
-            href="/api/auth/strava"
-            className="inline-flex items-center gap-2.5 font-sans text-[13px] font-semibold tracking-[0.04em] px-5 py-3.5 hover:opacity-85 transition-opacity"
-            style={{ background: 'var(--atlas-accent)', color: '#fbf7ee' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.169" />
-            </svg>
-            Connect with Strava
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2.5 font-sans text-[13px] font-semibold tracking-[0.04em] px-5 py-3.5 hover:opacity-85 transition-opacity"
+              style={{ background: 'var(--atlas-accent)', color: '#fbf7ee' }}
+            >
+              Create account
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center font-sans text-[13px] text-atlas-muted hover:text-atlas-ink transition-colors"
+            >
+              Sign in →
+            </Link>
+          </div>
         </div>
 
         {/* Coach card */}
@@ -116,10 +121,10 @@ export default function LandingPage({
             follow your athlete&rsquo;s training as if you were turning pages.
           </p>
           <Link
-            href="/api/auth/coach"
+            href="/login"
             className="inline-flex items-center font-sans text-[13px] font-medium border border-atlas-ink text-atlas-ink px-5 py-3.5 hover:opacity-70 transition-opacity"
           >
-            Continue as coach →
+            Sign in →
           </Link>
         </div>
 

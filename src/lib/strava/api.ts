@@ -97,6 +97,18 @@ export async function getLaps(
   return (await res.json()) as StravaLap[]
 }
 
+export async function getActivity(
+  accessToken: string,
+  activityId: number
+): Promise<StravaActivity | null> {
+  const res = await fetch(`${STRAVA_API}/activities/${activityId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`Strava activity fetch failed: ${res.status}`)
+  return (await res.json()) as StravaActivity
+}
+
 export async function getGPSStream(
   accessToken: string,
   activityId: number

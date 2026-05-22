@@ -1,28 +1,66 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { jwtVerify } from 'jose'
+import { NextRequest, NextResponse } from 'next/server'
 
-const COOKIE_NAME = 'training_session'
+const LEGACY_COOKIE = 'training_session'
 
-// Lightweight Edge-compatible session check.
-// Full jose JWS verification works in Edge — only JWE (encryption) needs Node.js APIs.
-export async function middleware(req: NextRequest): Promise<NextResponse> {
-  const token = req.cookies.get(COOKIE_NAME)?.value
-
-  if (!token) {
-    return NextResponse.redirect(new URL('/', req.url))
-  }
-
+// Lightweight check of the legacy JWT cookie (still set for backward compat).
+async function getLegacyRole(req: NextRequest): Promise<'athlete' | 'coach' | null> {
+  const token = req.cookies.get(LEGACY_COOKIE)?.value
+  if (!token) return null
   try {
     const secret = new TextEncoder().encode(process.env.SESSION_SECRET!)
     const { payload } = await jwtVerify(token, secret)
-    const role = (payload as Record<string, unknown>).role ?? 'athlete'
-    if (role === 'coach' && req.nextUrl.pathname.startsWith('/settings')) {
-      return NextResponse.redirect(new URL('/home', req.url))
-    }
-    return NextResponse.next()
+    return ((payload as Record<string, unknown>).role as 'athlete' | 'coach') ?? 'athlete'
   } catch {
-    return NextResponse.redirect(new URL('/', req.url))
+    return null
   }
+}
+
+export async function middleware(req: NextRequest): Promise<NextResponse> {
+  let response = NextResponse.next({ request: req })
+
+  // --- Primary: Supabase Auth session ---
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => req.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+          response = NextResponse.next({ request: req })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (user) {
+    const role = (user.user_metadata?.role as string | undefined) ?? 'athlete'
+    if (role === 'coach' && req.nextUrl.pathname.startsWith('/settings')) {
+      return NextResponse.redirect(new URL('/coach', req.url))
+    }
+    return response
+  }
+
+  // --- Fallback: legacy JWT cookie (Strava-only users, backward compat) ---
+  const legacyRole = await getLegacyRole(req)
+  if (legacyRole) {
+    if (legacyRole === 'coach' && req.nextUrl.pathname.startsWith('/settings')) {
+      return NextResponse.redirect(new URL('/coach', req.url))
+    }
+    return response
+  }
+
+  // Not authenticated — redirect to login
+  return NextResponse.redirect(new URL('/login', req.url))
 }
 
 export const config = {
@@ -33,5 +71,9 @@ export const config = {
     '/settings/:path*',
     '/plan/:path*',
     '/compare/:path*',
+    '/coach/:path*',
+    '/calendar/:path*',
+    '/onboarding',
+    '/onboarding/:path*',
   ],
 }

@@ -3,7 +3,7 @@ import { StravaTokenResponse } from './types'
 const STRAVA_AUTH_URL = 'https://www.strava.com/oauth/authorize'
 const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token'
 
-export function buildStravaAuthUrl(): string {
+export function buildStravaAuthUrl(state?: string): string {
   const params = new URLSearchParams({
     client_id: process.env.STRAVA_CLIENT_ID!,
     redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/strava`,
@@ -11,6 +11,7 @@ export function buildStravaAuthUrl(): string {
     approval_prompt: 'auto',
     scope: 'read,activity:read_all',
   })
+  if (state) params.set('state', state)
   return `${STRAVA_AUTH_URL}?${params.toString()}`
 }
 

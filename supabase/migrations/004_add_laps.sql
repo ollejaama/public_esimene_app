@@ -1,6 +1,6 @@
 -- Add activity_laps table for storing Strava lap data
 CREATE TABLE public.activity_laps (
-  id            uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   activity_id   uuid NOT NULL REFERENCES public.activities(id) ON DELETE CASCADE,
   user_id       uuid NOT NULL,
   lap_index     int NOT NULL,

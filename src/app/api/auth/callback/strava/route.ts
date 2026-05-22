@@ -2,31 +2,41 @@ import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import { exchangeCode } from '@/lib/strava/auth'
 import { createServiceClient } from '@/lib/supabase/server'
-import { setSessionCookie } from '@/lib/session'
+import { setSessionCookie, getSessionFromRequest } from '@/lib/session'
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = req.nextUrl
   const code = searchParams.get('code')
   const error = searchParams.get('error')
+  const state = searchParams.get('state') ?? ''
 
   if (error || !code) {
-    return NextResponse.redirect(new URL('/?error=strava_denied', req.url))
+    return NextResponse.redirect(new URL('/onboarding/strava?error=strava_denied', req.url))
   }
 
   try {
     const tokens = await exchangeCode(code)
     const db = createServiceClient()
 
-    // Check if this athlete already has a profile
-    const { data: existing } = await db
-      .from('profiles')
-      .select('user_id')
-      .eq('strava_athlete_id', tokens.athlete.id)
-      .single()
+    // Prefer the logged-in user's ID (new multi-user flow).
+    // Fall back to legacy UUID generation for Strava-only users.
+    const session = await getSessionFromRequest(req)
 
-    const userId = existing?.user_id ?? uuidv4()
+    let userId: string
+    let needsSessionCookie = false
 
-    // Upsert profile
+    if (session) {
+      userId = session.userId
+    } else {
+      const { data: existing } = await db
+        .from('profiles')
+        .select('user_id')
+        .eq('strava_athlete_id', tokens.athlete.id)
+        .single()
+      userId = existing?.user_id ?? uuidv4()
+      needsSessionCookie = true
+    }
+
     await db.from('profiles').upsert(
       {
         user_id: userId,
@@ -35,14 +45,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         strava_refresh_token: tokens.refresh_token,
         strava_token_expires_at: tokens.expires_at,
       },
-      { onConflict: 'strava_athlete_id' }
+      { onConflict: 'user_id' }
     )
 
-    const res = NextResponse.redirect(new URL('/activities', req.url))
-    await setSessionCookie(res, { userId, stravaAthleteId: tokens.athlete.id, role: 'athlete' })
+    const redirectTo = state || '/settings'
+    const res = NextResponse.redirect(new URL(redirectTo, req.url))
+
+    if (needsSessionCookie) {
+      await setSessionCookie(res, { userId, stravaAthleteId: tokens.athlete.id, role: 'athlete' })
+    }
+
     return res
   } catch (err) {
     console.error('Strava callback error:', err)
-    return NextResponse.redirect(new URL('/?error=auth_failed', req.url))
+    return NextResponse.redirect(new URL('/onboarding/strava?error=auth_failed', req.url))
   }
 }

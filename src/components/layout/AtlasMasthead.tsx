@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { NotificationBell } from './NotificationBell'
 
 const CHAPTERS: Record<string, [string, string]> = {
-  '/activities': ['02', 'Calendar'],
-  '/statistics': ['04', 'Statistics'],
-  '/plan':       ['03', 'The plan ahead'],
-  '/compare':    ['05', 'Compare'],
-  '/settings':   ['06', 'Settings'],
-  '/home':       ['01', 'Dashboard'],
+  '/activities':    ['02', 'Calendar'],
+  '/statistics':    ['04', 'Statistics'],
+  '/plan':          ['03', 'The plan ahead'],
+  '/compare':       ['05', 'Compare'],
+  '/settings':      ['06', 'Settings'],
+  '/home':          ['01', 'Dashboard'],
+  '/coach/athlete': ['07', 'Athlete view'],
+  '/coach':         ['01', 'Coach dashboard'],
 }
 
 export function AtlasMasthead({ athleteName, role }: { athleteName?: string; role?: string }) {
@@ -58,6 +61,7 @@ export function AtlasMasthead({ athleteName, role }: { athleteName?: string; rol
         <span className="font-mono text-[10px] tracking-[0.08em] text-atlas-muted">
           {userLabel}
         </span>
+        <NotificationBell />
         <button
           onClick={toggleTheme}
           className="border border-atlas-rule bg-transparent text-atlas-ink font-mono text-[10px] tracking-[0.1em] uppercase px-3 py-1.5 hover:border-atlas-muted transition-colors"
