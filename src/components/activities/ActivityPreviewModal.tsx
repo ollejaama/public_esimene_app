@@ -169,7 +169,9 @@ export function ActivityPreviewModal({
   const color = getSportColor(activity, customTag)
   const glyph = getSportGlyph(activity, customTag)
   const isStrength = effectiveSportKey(activity) === 'Strength' || effectiveSportKey(activity) === 'strength_basic'
-  const isSkiing = activity.sport_type === 'NordicSki' || activity.sport_type === 'BackcountrySki'
+  const isSkiing =
+    ['Skiing', 'Rollerski', 'crosscountry_classic', 'cr_skate', 'rollerski_classic', 'rollerski_skate', 'treadmill_classic', 'treadmill_skate'].includes(activity.overridden_sport_type ?? '') ||
+    (activity.overridden_sport_type == null && ['NordicSki', 'BackcountrySki'].includes(activity.sport_type))
 
   return (
     <Modal open onClose={onClose} maxWidth="max-w-[440px]" align="center" hideCloseButton>
@@ -230,6 +232,7 @@ export function ActivityPreviewModal({
               activityId={activity.id}
               currentTag={customTag}
               sportType={activity.sport_type}
+              overriddenSportType={activity.overridden_sport_type}
               onChanged={(tag) => setCustomTag(tag)}
             />
           </div>

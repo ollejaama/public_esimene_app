@@ -114,6 +114,7 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
   const [localIntensityType, setLocalIntensityType] = useState<string | null>(null)
   const [showIntervalModal, setShowIntervalModal] = useState(false)
   const [customTag, setCustomTag] = useState<string | null>(null)
+  const [overriddenSportType, setOverriddenSportType] = useState<string | null>(null)
 
   const [commentValue, setCommentValue] = useState('')
   const [editingComment, setEditingComment] = useState(false)
@@ -129,6 +130,7 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
         setDetail(data)
         setLocalIntensityType(data.activity?.intensity_type ?? null)
         setCustomTag(data.activity?.custom_sport_tag ?? null)
+        setOverriddenSportType(data.activity?.overridden_sport_type ?? null)
         setCommentValue(data.activity?.coach_comment ?? '')
         setHeartActive(data.activity?.athlete_heart ?? false)
         setLoading(false)
@@ -236,13 +238,14 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
           <div className="space-y-5" style={{ padding: '20px 28px 28px' }}>
             <SportTagSelector
               activityId={activity.id}
-              currentTag={activity.custom_sport_tag}
+              currentTag={customTag}
               sportType={activity.sport_type}
+              overriddenSportType={overriddenSportType}
               onChanged={handleTagChanged}
             />
             <StrengthSubtypeSelector
               activityId={activity.id}
-              currentTag={activity.custom_sport_tag}
+              currentTag={customTag}
               sportType={activity.sport_type}
               onChanged={handleTagChanged}
             />
@@ -267,6 +270,7 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
                 setLocalIntensityType(val)
                 if (val === 'interval') setShowIntervalModal(true)
               }}
+              onSportTypeChanged={(val) => { setOverriddenSportType(val); router.refresh() }}
             />
 
             {localIntensityType === 'interval' && (

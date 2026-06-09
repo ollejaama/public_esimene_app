@@ -10,13 +10,14 @@ export async function PUT(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { sport_type, duration_minutes, description, date, time_of_day, intensity_type } = body
+  const { sport_type, name, duration_minutes, description, date, time_of_day, intensity_type } = body
 
   const db = createServiceClient()
   const { data, error } = await db
     .from('planned_activities')
     .update({
       ...(sport_type != null && { sport_type }),
+      ...(name !== undefined && { name: name || null }),
       ...(duration_minutes != null && { duration_minutes: Number(duration_minutes) }),
       ...(description !== undefined && { description: description || null }),
       ...(date != null && { date }),

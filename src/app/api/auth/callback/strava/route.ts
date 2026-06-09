@@ -27,7 +27,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const userId = existing?.user_id ?? uuidv4()
 
     // Upsert profile
-    await db.from('profiles').upsert(
+    const { error: upsertError } = await db.from('profiles').upsert(
       {
         user_id: userId,
         strava_athlete_id: tokens.athlete.id,
@@ -37,6 +37,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
       { onConflict: 'strava_athlete_id' }
     )
+
+    if (upsertError) {
+      console.error('Strava callback error:', upsertError)
+      return NextResponse.redirect(new URL('/?error=auth_failed', req.url))
+    }
 
     const res = NextResponse.redirect(new URL('/activities', req.url))
     await setSessionCookie(res, { userId, stravaAthleteId: tokens.athlete.id, role: 'athlete' })

@@ -25,6 +25,7 @@ interface ActivityContentProps {
   zoneBoundaries?: { zone1_max: number; zone2_max: number; zone3_max: number; zone4_max: number }
   showDangerControls?: boolean
   onIntensityChange?: (val: string) => void
+  onSportTypeChanged?: (val: string | null) => void
 }
 
 function SectionBlock({ label, children }: { label: string; children: React.ReactNode }) {
@@ -48,6 +49,7 @@ export function ActivityContent({
   zoneBoundaries,
   showDangerControls = true,
   onIntensityChange,
+  onSportTypeChanged,
 }: ActivityContentProps) {
   const hasHR = zoneRows.some((z) => z.seconds > 0)
   const hrCovered = zoneRows.reduce((sum, z) => sum + z.seconds, 0)
@@ -84,7 +86,7 @@ export function ActivityContent({
     return (
       <div>
         <SectionBlock label="Stats">
-          <ActivityStatsGrid activity={activity} showDangerControls={showDangerControls} onIntensityChange={onIntensityChange} />
+          <ActivityStatsGrid activity={activity} showDangerControls={showDangerControls} onIntensityChange={onIntensityChange} onSportTypeChanged={onSportTypeChanged} />
         </SectionBlock>
       </div>
     )
@@ -93,7 +95,7 @@ export function ActivityContent({
   return (
     <div className="space-y-4">
       <SectionBlock label="Stats">
-        <ActivityStatsGrid activity={activity} showDangerControls={showDangerControls} onIntensityChange={onIntensityChange} />
+        <ActivityStatsGrid activity={activity} showDangerControls={showDangerControls} onIntensityChange={onIntensityChange} onSportTypeChanged={onSportTypeChanged} />
       </SectionBlock>
 
       {hasHR && (

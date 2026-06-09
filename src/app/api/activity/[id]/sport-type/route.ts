@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionFromRequest } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
-import { SPORT_COLORS } from '@/lib/constants'
 
 export async function PATCH(
   req: NextRequest,
@@ -12,10 +11,6 @@ export async function PATCH(
 
   const body = await req.json()
   const overridden_sport_type = body.overridden_sport_type ?? null
-
-  if (overridden_sport_type !== null && !(overridden_sport_type in SPORT_COLORS)) {
-    return NextResponse.json({ error: 'Invalid sport type' }, { status: 400 })
-  }
 
   const db = createServiceClient()
   const { error } = await db

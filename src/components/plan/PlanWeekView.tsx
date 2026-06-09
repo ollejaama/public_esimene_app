@@ -305,7 +305,7 @@ function PlanPill({ a, onClick }: { a: PlannedActivity; onClick: () => void }) {
       >
         <span className={`font-serif italic text-[13px] ${isComp ? 'text-[#b8860b]' : isInterval ? 'text-atlas-accent' : ''}`}
           style={!isComp && !isInterval ? { color } : {}}>
-          {isComp ? '★ Race' : a.sport_type}
+          {isComp ? '★ Race' : (a.name || a.sport_type)}
         </span>
         <span className="font-mono text-[10px] text-atlas-muted ml-2 shrink-0">{dur}</span>
       </span>

@@ -96,6 +96,7 @@ export interface PlannedActivity {
   user_id: string
   date: string // 'YYYY-MM-DD'
   sport_type: string
+  name: string | null
   duration_minutes: number
   description: string | null
   time_of_day: 'morning' | 'evening'

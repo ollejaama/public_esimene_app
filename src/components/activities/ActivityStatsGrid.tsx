@@ -98,9 +98,10 @@ interface ActivityStatsGridProps {
   activity: Activity
   showDangerControls?: boolean
   onIntensityChange?: (val: string) => void
+  onSportTypeChanged?: (val: string | null) => void
 }
 
-export function ActivityStatsGrid({ activity, showDangerControls = true, onIntensityChange }: ActivityStatsGridProps) {
+export function ActivityStatsGrid({ activity, showDangerControls = true, onIntensityChange, onSportTypeChanged }: ActivityStatsGridProps) {
   const sportKey = effectiveSportKey(activity)
   const isStrength = sportKey === 'Strength' || sportKey === 'strength_basic'
   const isCycling = (SPORT_TYPE_MAP[activity.sport_type] ?? 'Other') === 'Cycling'
@@ -154,8 +155,6 @@ export function ActivityStatsGrid({ activity, showDangerControls = true, onInten
   const [sportSel, setSportSel] = useState(activity.overridden_sport_type ?? '')
   const displaySport = sportOverride
     ? getSportLabel(sportOverride)
-    : activity.custom_sport_tag
-    ? getSportLabel(activity.custom_sport_tag)
     : (SPORT_TYPE_MAP[activity.sport_type] ?? activity.sport_type)
 
   function openSportEdit() { setSportSel(sportOverride ?? ''); setSportError(null); setSportEditing(true) }
@@ -169,6 +168,7 @@ export function ActivityStatsGrid({ activity, showDangerControls = true, onInten
       })
       if (!r.ok) { setSportError('Save failed'); return }
       setSportOverride(sportSel || null); setSportEditing(false)
+      onSportTypeChanged?.(sportSel || null)
     } finally { setSportSaving(false) }
   }
 
@@ -181,6 +181,7 @@ export function ActivityStatsGrid({ activity, showDangerControls = true, onInten
       })
       if (!r.ok) return
       setSportOverride(null); setSportEditing(false)
+      onSportTypeChanged?.(null)
     } finally { setSportSaving(false) }
   }
 

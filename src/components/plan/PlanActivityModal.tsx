@@ -17,6 +17,7 @@ interface PlanActivityModalProps {
 }
 
 export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'morning', onClose, onSaved, initialIsRestDay, onToggleRestDay }: PlanActivityModalProps) {
+  const [name, setName] = useState(activity?.name ?? '')
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'evening'>(activity?.time_of_day ?? initialTimeOfDay)
   const [intensityType, setIntensityType] = useState<'regular' | 'interval' | 'speed' | 'competition'>(activity?.intensity_type ?? 'regular')
   const [sportType, setSportType] = useState(activity?.sport_type ?? PLANNED_SPORT_TYPES[0])
@@ -49,7 +50,7 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
       return
     }
 
-    const body = { date, sport_type: sportType, duration_minutes, description: description || null, time_of_day: timeOfDay, intensity_type: intensityType }
+    const body = { date, sport_type: sportType, name: name || null, duration_minutes, description: description || null, time_of_day: timeOfDay, intensity_type: intensityType }
 
     try {
       const res = mode === 'add'
@@ -104,9 +105,13 @@ export function PlanActivityModal({ mode, date, activity, initialTimeOfDay = 'mo
           <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted">
             {mode === 'add' ? 'Plan · add session' : 'Plan · edit session'}
           </p>
-          <h2 className="font-serif text-[20px] tracking-[-0.02em] text-atlas-ink mt-0.5">
-            Planned training
-          </h2>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Planned training"
+            className="font-serif text-[20px] tracking-[-0.02em] text-atlas-ink bg-transparent border-b border-transparent hover:border-atlas-rule focus:border-atlas-muted outline-none w-full placeholder:text-atlas-ink mt-0.5 transition-colors"
+          />
           <p className="font-serif italic text-[12px] text-atlas-muted mt-0.5">{displayDate}</p>
         </div>
         <div className="flex items-center gap-3 mt-1">
