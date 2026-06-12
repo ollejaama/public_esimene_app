@@ -57,7 +57,6 @@ export default async function ActivitiesPage() {
         illnessEntries={illnessData ?? []}
         userSettings={{
           show_rpe: userSettingsData?.show_rpe ?? false,
-          rpe_scale: (userSettingsData?.rpe_scale as 'rpe' | 'borg') ?? 'rpe',
           show_lactate: userSettingsData?.show_lactate ?? false,
         }}
       />

@@ -9,7 +9,7 @@ import { SportTagSelector } from './SportTagSelector'
 import { StrengthSubtypeSelector } from './StrengthSubtypeSelector'
 import { ContributionEditor } from './ContributionEditor'
 import { HideToggle } from './HideToggle'
-import { RPEInput } from './RPEInput'
+import { FeelingInput } from './FeelingInput'
 import { LactateInput } from './LactateInput'
 import { Activity, ActivityLap, LactateMeasurement } from '@/lib/supabase/types'
 import { ZoneRow } from '@/lib/analytics/hrZones'
@@ -23,8 +23,7 @@ interface ActivityExpandedModalProps {
   activityId: string
   onClose: () => void
   isCoach?: boolean
-  showRPE?: boolean
-  rpeScale?: 'rpe' | 'borg'
+  showFeeling?: boolean
   showLactate?: boolean
 }
 
@@ -106,7 +105,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function ActivityExpandedModal({ activityId, onClose, isCoach = false, showRPE = false, rpeScale = 'rpe', showLactate = false }: ActivityExpandedModalProps) {
+export function ActivityExpandedModal({ activityId, onClose, isCoach = false, showFeeling = false, showLactate = false }: ActivityExpandedModalProps) {
   const router = useRouter()
   const [detail, setDetail] = useState<ActivityDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -273,6 +272,13 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
               onSportTypeChanged={(val) => { setOverriddenSportType(val); router.refresh() }}
             />
 
+            {showFeeling && detail.activity && (
+              <div>
+                <SectionLabel>Feeling</SectionLabel>
+                <FeelingInput activityId={detail.activity.id} initialValue={detail.activity.rpe} />
+              </div>
+            )}
+
             {localIntensityType === 'interval' && (
               <IntervalSetsSection
                 activityId={activityId}
@@ -287,13 +293,6 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
                 onClose={() => setShowIntervalModal(false)}
                 onSaved={() => setShowIntervalModal(false)}
               />
-            )}
-
-            {showRPE && detail.activity && (
-              <div>
-                <SectionLabel>RPE</SectionLabel>
-                <RPEInput activityId={detail.activity.id} initialValue={detail.activity.rpe} scale={rpeScale} />
-              </div>
             )}
 
             {showLactate && (

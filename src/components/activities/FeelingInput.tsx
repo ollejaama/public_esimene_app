@@ -2,20 +2,16 @@
 
 import { useState } from 'react'
 
-interface RPEInputProps {
+interface FeelingInputProps {
   activityId: string
   initialValue: number | null
-  scale: 'rpe' | 'borg'
 }
 
-const RPE_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-const BORG_VALUES = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+const FEELING_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-export function RPEInput({ activityId, initialValue, scale }: RPEInputProps) {
+export function FeelingInput({ activityId, initialValue }: FeelingInputProps) {
   const [value, setValue] = useState<number | null>(initialValue)
   const [saving, setSaving] = useState(false)
-
-  const buttons = scale === 'rpe' ? RPE_VALUES : BORG_VALUES
 
   async function handleSelect(v: number) {
     const next = value === v ? null : v
@@ -32,7 +28,7 @@ export function RPEInput({ activityId, initialValue, scale }: RPEInputProps) {
   return (
     <div>
       <div className="flex flex-wrap gap-1">
-        {buttons.map((v) => (
+        {FEELING_VALUES.map((v) => (
           <button
             key={v}
             onClick={() => handleSelect(v)}

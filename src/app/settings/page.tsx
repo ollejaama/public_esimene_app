@@ -64,7 +64,6 @@ export default async function SettingsPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Features</h2>
           <UserSettingsForm initial={{
             show_rpe: userSettingsData?.show_rpe ?? false,
-            rpe_scale: (userSettingsData?.rpe_scale as 'rpe' | 'borg') ?? 'rpe',
             show_lactate: userSettingsData?.show_lactate ?? false,
           }} />
         </Card>

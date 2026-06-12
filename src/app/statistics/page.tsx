@@ -5,10 +5,10 @@ import { VolumeByZoneChart } from '@/components/statistics/VolumeByZoneChart'
 import { SeasonalVolumeWidget } from '@/components/statistics/SeasonalVolumeWidget'
 import { MonthlyVolumeWidget } from '@/components/statistics/MonthlyVolumeWidget'
 import { HRZoneDonutChart } from '@/components/statistics/HRZoneDonutChart'
-import { SportBreakdownTable } from '@/components/statistics/SportBreakdownTable'
+import { SportBreakdownPie } from '@/components/statistics/SportBreakdownPie'
 import { IntensityBreakdown } from '@/components/statistics/IntensityBreakdown'
 import { RestDaysWidget } from '@/components/statistics/RestDaysWidget'
-import { RPEWidget } from '@/components/statistics/RPEWidget'
+import { FeelingWidget } from '@/components/statistics/FeelingWidget'
 import { IllnessWidget } from '@/components/statistics/IllnessWidget'
 import { LactateChart } from '@/components/statistics/LactateChart'
 import { getSession } from '@/lib/session'
@@ -170,7 +170,7 @@ export default async function StatisticsPage({
   let lactateAvg: number | null = null
   let lactateSessionCount = 0
   let lactateBySport: { sportKey: string; avgMmol: number }[] = []
-  if (range === 'season' && userSettingsData?.show_lactate) {
+  if (userSettingsData?.show_lactate) {
     const activityIds = (rangeActivities ?? []).map((a) => a.id)
     if (activityIds.length > 0) {
       const { data: lactateRows } = await db
@@ -340,7 +340,7 @@ export default async function StatisticsPage({
           <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
             <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate II · Sport breakdown</p>
             <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5 mb-4">where the hours went</p>
-            <SportBreakdownTable bySport={summary.bySport} />
+            <SportBreakdownPie bySport={summary.bySport} />
           </div>
 
           <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
@@ -378,27 +378,22 @@ export default async function StatisticsPage({
           </div>
         </div>
 
-        {/* Plate VII — Effort rating */}
+        {/* Plate VII — Feeling */}
         {userSettingsData?.show_rpe && (
           <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
             <div className="flex items-end justify-between mb-4">
               <div>
-                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate VII · Effort rating</p>
-                <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">perceived effort, by the athlete's own hand</p>
+                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate VII · Feeling</p>
+                <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">how good the training felt, 1–10</p>
               </div>
-              <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-atlas-faint">
-                {userSettingsData.rpe_scale === 'borg' ? 'Borg (6–20)' : 'RPE (1–10)'}
-              </span>
+              <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-atlas-faint">1–10</span>
             </div>
-            <RPEWidget
-              activities={rangeActivities ?? []}
-              scale={(userSettingsData.rpe_scale as 'rpe' | 'borg') ?? 'rpe'}
-            />
+            <FeelingWidget activities={rangeActivities ?? []} />
           </div>
         )}
 
         {/* Plate VIII — Lactate */}
-        {range === 'season' && userSettingsData?.show_lactate && (
+        {userSettingsData?.show_lactate && lactateAvg !== null && (
           <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
             <div className="flex items-end justify-between mb-4">
               <div>

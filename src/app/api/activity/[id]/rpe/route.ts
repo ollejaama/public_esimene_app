@@ -12,8 +12,8 @@ export async function PATCH(
   const body = await req.json()
   const rpe = body.rpe === null ? null : Number(body.rpe)
 
-  if (rpe !== null && (!Number.isInteger(rpe) || rpe < 1 || rpe > 20)) {
-    return NextResponse.json({ error: 'rpe must be 1–20 or null' }, { status: 400 })
+  if (rpe !== null && (!Number.isInteger(rpe) || rpe < 1 || rpe > 10)) {
+    return NextResponse.json({ error: 'rpe must be 1–10 or null' }, { status: 400 })
   }
 
   const db = createServiceClient()

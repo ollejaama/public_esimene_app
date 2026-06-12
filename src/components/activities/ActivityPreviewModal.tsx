@@ -11,7 +11,7 @@ import { StrengthSubtypeSelector } from './StrengthSubtypeSelector'
 import { SportTagSelector } from './SportTagSelector'
 import { IntensityEditor } from './IntensityEditor'
 import { IntervalSetupModal } from './IntervalSetupModal'
-import { RPEInput } from './RPEInput'
+import { FeelingInput } from './FeelingInput'
 import { LactateInput } from './LactateInput'
 
 interface ActivityPreviewModalProps {
@@ -19,8 +19,7 @@ interface ActivityPreviewModalProps {
   onClose: () => void
   onExpand: () => void
   isCoach?: boolean
-  showRPE?: boolean
-  rpeScale?: 'rpe' | 'borg'
+  showFeeling?: boolean
   showLactate?: boolean
 }
 
@@ -86,7 +85,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export function ActivityPreviewModal({
   activity, onClose, onExpand,
-  isCoach = false, showRPE = false, rpeScale = 'rpe', showLactate = false,
+  isCoach = false, showFeeling = false, showLactate = false,
 }: ActivityPreviewModalProps) {
   const router = useRouter()
   const [noteValue, setNoteValue] = useState(activity.notes ?? '')
@@ -296,6 +295,11 @@ export function ActivityPreviewModal({
           )}
         </div>
 
+        {/* Feeling */}
+        {showFeeling && (
+          <FeelingInput activityId={activity.id} initialValue={activity.rpe} />
+        )}
+
         {/* Notes */}
         <div>
           <SectionLabel>Notes</SectionLabel>
@@ -325,11 +329,6 @@ export function ActivityPreviewModal({
             </button>
           )}
         </div>
-
-        {/* RPE */}
-        {showRPE && (
-          <RPEInput activityId={activity.id} initialValue={activity.rpe} scale={rpeScale} />
-        )}
 
         {/* Coach comment */}
         {isCoach ? (

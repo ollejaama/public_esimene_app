@@ -13,7 +13,6 @@ import { effectiveContributionSeconds } from '@/lib/activity'
 
 interface UserSettings {
   show_rpe: boolean
-  rpe_scale: 'rpe' | 'borg'
   show_lactate: boolean
 }
 
@@ -223,8 +222,7 @@ export function ActivityCalendar({
             setSelectedActivity(null)
           }}
           isCoach={isCoach}
-          showRPE={userSettings?.show_rpe ?? false}
-          rpeScale={userSettings?.rpe_scale ?? 'rpe'}
+          showFeeling={userSettings?.show_rpe ?? false}
           showLactate={userSettings?.show_lactate ?? false}
         />
       )}
@@ -234,8 +232,7 @@ export function ActivityCalendar({
           activityId={expandedActivityId}
           onClose={() => setExpandedActivityId(null)}
           isCoach={isCoach}
-          showRPE={userSettings?.show_rpe ?? false}
-          rpeScale={userSettings?.rpe_scale ?? 'rpe'}
+          showFeeling={userSettings?.show_rpe ?? false}
           showLactate={userSettings?.show_lactate ?? false}
         />
       )}

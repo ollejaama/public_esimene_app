@@ -4,27 +4,24 @@ import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { Activity } from '@/lib/supabase/types'
 
-interface RPEWidgetProps {
+interface FeelingWidgetProps {
   activities: Activity[]
-  scale: 'rpe' | 'borg'
 }
 
-export function RPEWidget({ activities, scale }: RPEWidgetProps) {
+export function FeelingWidget({ activities }: FeelingWidgetProps) {
   const [open, setOpen] = useState(false)
 
-  const withRpe = activities.filter((a) => a.rpe != null)
-  if (withRpe.length === 0) {
+  const withFeeling = activities.filter((a) => a.rpe != null)
+  if (withFeeling.length === 0) {
     return (
-      <p className="font-serif italic text-[13px] text-atlas-faint">No RPE data recorded</p>
+      <p className="font-serif italic text-[13px] text-atlas-faint">No Feeling data recorded</p>
     )
   }
 
-  const avg = withRpe.reduce((s, a) => s + a.rpe!, 0) / withRpe.length
-  const scaleMax = scale === 'rpe' ? 10 : 20
-  const scaleLabel = scale === 'rpe' ? 'RPE (1–10)' : 'Borg (6–20)'
+  const avg = withFeeling.reduce((s, a) => s + a.rpe!, 0) / withFeeling.length
 
   const bySport = new Map<string, { sum: number; count: number }>()
-  for (const a of withRpe) {
+  for (const a of withFeeling) {
     const sport = a.sport_type ?? 'Other'
     const entry = bySport.get(sport) ?? { sum: 0, count: 0 }
     bySport.set(sport, { sum: entry.sum + a.rpe!, count: entry.count + 1 })
@@ -37,16 +34,16 @@ export function RPEWidget({ activities, scale }: RPEWidgetProps) {
           <div className="font-serif text-[88px] tracking-[-0.04em] leading-[0.95] text-atlas-ink">
             {avg.toFixed(1)}
           </div>
-          <p className="font-serif italic text-[14px] text-atlas-muted mt-1.5">average effort</p>
+          <p className="font-serif italic text-[14px] text-atlas-muted mt-1.5">average feeling</p>
           <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-atlas-faint mt-1">
-            across {withRpe.length} sessions
+            across {withFeeling.length} sessions
           </p>
         </button>
 
         <div className="flex flex-col gap-1">
           {Array.from(bySport.entries()).map(([sport, { sum, count }]) => {
             const sportAvg = sum / count
-            const barPct = (sportAvg / scaleMax) * 100
+            const barPct = (sportAvg / 10) * 100
             return (
               <div key={sport} className="grid gap-3 items-center py-1.5 border-b border-dotted border-atlas-rule"
                 style={{ gridTemplateColumns: '1.4fr 2fr auto auto' }}>
@@ -66,9 +63,9 @@ export function RPEWidget({ activities, scale }: RPEWidgetProps) {
         <Modal open onClose={() => setOpen(false)} maxWidth="max-w-sm" align="center" hideCloseButton>
           <div className="flex items-start justify-between border-b border-atlas-rule bg-atlas-bg" style={{ padding: '16px 20px 14px' }}>
             <div>
-              <h2 className="font-serif text-[20px] tracking-[-0.02em] text-atlas-ink">Effort Rating</h2>
+              <h2 className="font-serif text-[20px] tracking-[-0.02em] text-atlas-ink">Feeling</h2>
               <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">
-                {scaleLabel} · avg {avg.toFixed(1)} across {withRpe.length} sessions
+                1–10 · avg {avg.toFixed(1)} across {withFeeling.length} sessions
               </p>
             </div>
             <button
