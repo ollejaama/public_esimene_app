@@ -55,9 +55,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           .update({ user_id: user.id })
           .eq('user_id', oldUserId)
       }
+      // Delete the old profile row so the upsert below can insert cleanly
+      await db.from('profiles').delete().eq('user_id', oldUserId)
     }
 
     // Upsert profile linked to this Supabase Auth user
+    // onConflict: 'user_id' handles the case where onboarding already created a partial profile
     const { error: upsertError } = await db.from('profiles').upsert(
       {
         user_id: user.id,
@@ -67,8 +70,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         strava_token_expires_at: tokens.expires_at,
         email: user.email,
         role: user.user_metadata?.role ?? 'athlete',
+        display_name: user.user_metadata?.display_name ?? null,
       },
-      { onConflict: 'strava_athlete_id' }
+      { onConflict: 'user_id' }
     )
 
     if (upsertError) {
