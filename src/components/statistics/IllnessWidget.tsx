@@ -8,6 +8,7 @@ interface IllnessWidgetProps {
   illnessEntries: IllnessLog[]
   start: Date
   end: Date
+  compact?: boolean
 }
 
 const CATEGORY_META: Record<string, { label: string; color: string }> = {
@@ -49,7 +50,7 @@ function daysBetween(start: string, end: string): number {
   return Math.round((b.getTime() - a.getTime()) / 86400000) + 1
 }
 
-export function IllnessWidget({ illnessEntries, start, end }: IllnessWidgetProps) {
+export function IllnessWidget({ illnessEntries, start, end, compact }: IllnessWidgetProps) {
   const [open, setOpen] = useState(false)
 
   const total = countAffectedDays(illnessEntries, start, end)
@@ -60,6 +61,14 @@ export function IllnessWidget({ illnessEntries, start, end }: IllnessWidgetProps
 
   return (
     <>
+      {compact ? (
+        <button onClick={() => setOpen(true)} className="w-full text-left">
+          <div className="font-serif text-[40px] tracking-[-0.03em] leading-none text-atlas-ink">
+            {total}
+          </div>
+          <p className="font-serif italic text-[12px] text-atlas-muted mt-1.5">affected days</p>
+        </button>
+      ) : (
       <button onClick={() => setOpen(true)} className="w-full text-left">
         <div className="flex items-baseline gap-2.5 mb-1.5">
           <span className="font-serif text-[56px] tracking-[-0.03em] leading-none text-atlas-ink">
@@ -81,6 +90,7 @@ export function IllnessWidget({ illnessEntries, start, end }: IllnessWidgetProps
           </div>
         )}
       </button>
+      )}
 
       {open && (
         <Modal open onClose={() => setOpen(false)} maxWidth="max-w-sm" align="center" hideCloseButton>

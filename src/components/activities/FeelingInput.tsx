@@ -27,6 +27,7 @@ export function FeelingInput({ activityId, initialValue }: FeelingInputProps) {
 
   return (
     <div>
+      <p className="font-mono text-[10px] uppercase tracking-widest text-atlas-muted mb-1.5">Feeling</p>
       <div className="flex flex-wrap gap-1">
         {FEELING_VALUES.map((v) => (
           <button
@@ -35,7 +36,7 @@ export function FeelingInput({ activityId, initialValue }: FeelingInputProps) {
             className={[
               'w-7 h-7 font-mono text-[11px] tabular-nums border transition-colors',
               value === v
-                ? 'bg-atlas-ink text-atlas-bg border-atlas-ink'
+                ? 'bg-atlas-selected text-atlas-selectedFg border-atlas-selected'
                 : 'bg-transparent text-atlas-muted border-atlas-rule hover:border-atlas-muted hover:text-atlas-ink',
             ].join(' ')}
           >

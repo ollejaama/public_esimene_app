@@ -273,10 +273,7 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
             />
 
             {showFeeling && detail.activity && (
-              <div>
-                <SectionLabel>Feeling</SectionLabel>
-                <FeelingInput activityId={detail.activity.id} initialValue={detail.activity.rpe} />
-              </div>
+              <FeelingInput activityId={detail.activity.id} initialValue={detail.activity.rpe} />
             )}
 
             {localIntensityType === 'interval' && (

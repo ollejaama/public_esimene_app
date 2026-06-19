@@ -11,6 +11,7 @@ import { RestDaysWidget } from '@/components/statistics/RestDaysWidget'
 import { FeelingWidget } from '@/components/statistics/FeelingWidget'
 import { IllnessWidget } from '@/components/statistics/IllnessWidget'
 import { LactateChart } from '@/components/statistics/LactateChart'
+import { DistanceWidget } from '@/components/statistics/DistanceWidget'
 import { getSession } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
 import { HRZoneSettings } from '@/lib/supabase/types'
@@ -255,6 +256,15 @@ export default async function StatisticsPage({
     ? `${start.getFullYear()}/${String(start.getFullYear() + 1).slice(-2)}`
     : null
 
+  const distanceBySport = new Map<string, number>()
+  for (const a of rangeActivities ?? []) {
+    if ((a.distance ?? 0) <= 0) continue
+    const key = effectiveSportKey(a)
+    distanceBySport.set(key, (distanceBySport.get(key) ?? 0) + a.distance)
+  }
+  const totalDistanceMeters = Array.from(distanceBySport.values()).reduce((s, v) => s + v, 0)
+  const distanceBySportArray = Array.from(distanceBySport.entries()).map(([sportKey, meters]) => ({ sportKey, meters }))
+
   return (
     <AppShell>
       <SyncRefresher />
@@ -367,44 +377,41 @@ export default async function StatisticsPage({
                 restDayDates={restDayDates}
               />
             </div>
-            <div className="bg-atlas-panel border border-atlas-rule flex-1" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '16px 20px 18px' }}>
-              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted mb-2.5">Plate VI · Health</p>
-              <IllnessWidget
-                illnessEntries={illnessData ?? []}
-                start={start}
-                end={end}
-              />
-            </div>
           </div>
         </div>
 
-        {/* Plate VII — Feeling */}
-        {userSettingsData?.show_rpe && (
-          <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
-            <div className="flex items-end justify-between mb-4">
-              <div>
-                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate VII · Feeling</p>
-                <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">how good the training felt, 1–10</p>
+        {/* Plates VI–IX — Compact analytics row */}
+        {(() => {
+          const hasFeeling = (userSettingsData?.show_rpe ?? false) && (rangeActivities ?? []).some(a => a.rpe != null)
+          const hasLactate = (userSettingsData?.show_lactate ?? false) && lactateAvg !== null
+          const compactCount = 1 + (hasFeeling ? 1 : 0) + (totalDistanceMeters > 0 ? 1 : 0) + (hasLactate ? 1 : 0)
+          return (
+            <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${compactCount}, 1fr)` }}>
+              <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '14px 18px 16px' }}>
+                <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted mb-2.5">Plate VI · Health</p>
+                <IllnessWidget compact illnessEntries={illnessData ?? []} start={start} end={end} />
               </div>
-              <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-atlas-faint">1–10</span>
+              {hasFeeling && (
+                <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '14px 18px 16px' }}>
+                  <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted mb-2.5">Plate VII · Feeling</p>
+                  <FeelingWidget compact activities={rangeActivities ?? []} />
+                </div>
+              )}
+              {totalDistanceMeters > 0 && (
+                <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '14px 18px 16px' }}>
+                  <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted mb-2.5">Plate VIII · Distance</p>
+                  <DistanceWidget compact totalMeters={totalDistanceMeters} bySport={distanceBySportArray} />
+                </div>
+              )}
+              {hasLactate && (
+                <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '14px 18px 16px' }}>
+                  <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-atlas-muted mb-2.5">Plate IX · Lactate</p>
+                  <LactateChart compact avg={lactateAvg} sessionCount={lactateSessionCount} lactateBySport={lactateBySport} />
+                </div>
+              )}
             </div>
-            <FeelingWidget activities={rangeActivities ?? []} />
-          </div>
-        )}
-
-        {/* Plate VIII — Lactate */}
-        {userSettingsData?.show_lactate && lactateAvg !== null && (
-          <div className="bg-atlas-panel border border-atlas-rule" style={{ borderTop: '1.5px solid var(--atlas-ink)', padding: '18px 22px 22px' }}>
-            <div className="flex items-end justify-between mb-4">
-              <div>
-                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">Plate VIII · Lactate</p>
-                <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">measured in millimoles, recorded by hand</p>
-              </div>
-              <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-atlas-faint">mmol/L</span>
-            </div>
-            <LactateChart avg={lactateAvg} sessionCount={lactateSessionCount} lactateBySport={lactateBySport} />
-          </div>
-        )}
+          )
+        })()}
 
         {/* Marginalia footer */}
         <div className="border-t border-atlas-rule pt-3 flex items-baseline justify-between mt-2">

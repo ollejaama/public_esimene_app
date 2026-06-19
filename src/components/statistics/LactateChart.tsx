@@ -7,9 +7,10 @@ interface LactateWidgetProps {
   avg: number | null
   sessionCount: number
   lactateBySport: { sportKey: string; avgMmol: number }[]
+  compact?: boolean
 }
 
-export function LactateChart({ avg, sessionCount, lactateBySport }: LactateWidgetProps) {
+export function LactateChart({ avg, sessionCount, lactateBySport, compact }: LactateWidgetProps) {
   const [open, setOpen] = useState(false)
 
   if (avg === null) {
@@ -17,6 +18,44 @@ export function LactateChart({ avg, sessionCount, lactateBySport }: LactateWidge
   }
 
   const maxAvg = Math.max(...lactateBySport.map((s) => s.avgMmol), 1)
+
+  if (compact) {
+    return (
+      <>
+        <button onClick={() => setOpen(true)} className="w-full text-left">
+          <div className="font-serif text-[40px] tracking-[-0.03em] leading-none text-atlas-ink">
+            {avg.toFixed(2)}
+          </div>
+          <p className="font-serif italic text-[12px] text-atlas-muted mt-1.5">mmol/L avg</p>
+        </button>
+        {open && (
+          <Modal open onClose={() => setOpen(false)} maxWidth="max-w-sm" align="center" hideCloseButton>
+            <div className="flex items-start justify-between border-b border-atlas-rule bg-atlas-bg" style={{ padding: '16px 20px 14px' }}>
+              <div>
+                <h2 className="font-serif text-[20px] tracking-[-0.02em] text-atlas-ink">Lactate by sport</h2>
+                <p className="font-serif italic text-[13px] text-atlas-muted mt-0.5">Average mmol/L · {sessionCount} sessions</p>
+              </div>
+              <button onClick={() => setOpen(false)} className="w-7 h-7 flex items-center justify-center border border-atlas-rule text-atlas-muted hover:text-atlas-ink hover:border-atlas-muted font-mono text-sm leading-none transition-colors">×</button>
+            </div>
+            <div style={{ padding: '12px 20px 20px' }}>
+              {lactateBySport.length === 0 ? (
+                <p className="font-serif italic text-[13px] text-atlas-faint">No lactate data for this period.</p>
+              ) : (
+                <div>
+                  {lactateBySport.map(({ sportKey, avgMmol }) => (
+                    <div key={sportKey} className="flex items-center justify-between py-1.5 border-b border-dotted border-atlas-rule">
+                      <span className="font-serif text-[14px] text-atlas-ink">{sportKey}</span>
+                      <span className="font-mono text-[12px] text-atlas-ink font-semibold">{avgMmol.toFixed(2)} mmol/L</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Modal>
+        )}
+      </>
+    )
+  }
 
   return (
     <>

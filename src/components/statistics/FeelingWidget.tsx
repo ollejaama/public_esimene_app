@@ -6,9 +6,10 @@ import { Activity } from '@/lib/supabase/types'
 
 interface FeelingWidgetProps {
   activities: Activity[]
+  compact?: boolean
 }
 
-export function FeelingWidget({ activities }: FeelingWidgetProps) {
+export function FeelingWidget({ activities, compact }: FeelingWidgetProps) {
   const [open, setOpen] = useState(false)
 
   const withFeeling = activities.filter((a) => a.rpe != null)
@@ -29,6 +30,14 @@ export function FeelingWidget({ activities }: FeelingWidgetProps) {
 
   return (
     <>
+      {compact ? (
+        <button onClick={() => setOpen(true)} className="w-full text-left">
+          <div className="font-serif text-[40px] tracking-[-0.03em] leading-none text-atlas-ink">
+            {avg.toFixed(1)}
+          </div>
+          <p className="font-serif italic text-[12px] text-atlas-muted mt-1.5">avg feeling</p>
+        </button>
+      ) : (
       <div className="grid gap-8" style={{ gridTemplateColumns: 'auto 1fr', alignItems: 'center' }}>
         <button onClick={() => setOpen(true)} className="text-left" style={{ paddingRight: 32, borderRight: '1px solid var(--atlas-rule)', minWidth: 160 }}>
           <div className="font-serif text-[88px] tracking-[-0.04em] leading-[0.95] text-atlas-ink">
@@ -58,6 +67,7 @@ export function FeelingWidget({ activities }: FeelingWidgetProps) {
           })}
         </div>
       </div>
+      )}
 
       {open && (
         <Modal open onClose={() => setOpen(false)} maxWidth="max-w-sm" align="center" hideCloseButton>
