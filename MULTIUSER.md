@@ -2,6 +2,8 @@
 
 This document is the single source of truth for the multi-user rebuild. Update the progress checkboxes as each item is completed. Designed to span multiple sessions.
 
+> **Always use plan mode before writing any code for a new session.** Run `/plan` and get approval before touching files.
+
 ---
 
 ## Architecture decisions

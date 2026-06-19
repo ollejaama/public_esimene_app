@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (data.user) {
-    await sendWelcomeEmail(email, role as 'athlete' | 'coach')
+    sendWelcomeEmail(email, role as 'athlete' | 'coach').catch(() => {})
   }
 
   return NextResponse.json({ success: true })

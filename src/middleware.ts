@@ -27,9 +27,17 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
+  const pathname = req.nextUrl.pathname
   const role = user.user_metadata?.role ?? 'athlete'
-  if (role === 'coach' && req.nextUrl.pathname.startsWith('/settings')) {
+
+  if (role === 'coach' && pathname.startsWith('/settings')) {
     return NextResponse.redirect(new URL('/home', req.url))
+  }
+
+  // Redirect to onboarding if the user hasn't completed profile setup yet
+  const hasProfile = user.user_metadata?.has_profile === true
+  if (!hasProfile && pathname !== '/onboarding') {
+    return NextResponse.redirect(new URL('/onboarding', req.url))
   }
 
   return response
@@ -44,5 +52,6 @@ export const config = {
     '/plan/:path*',
     '/compare/:path*',
     '/coach/:path*',
+    '/onboarding',
   ],
 }

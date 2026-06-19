@@ -76,9 +76,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       return NextResponse.redirect(new URL('/?error=auth_failed', req.url))
     }
 
-    // Store strava_athlete_id in Supabase Auth user metadata
+    // Store strava_athlete_id in user metadata; has_profile tells middleware onboarding is done
     await ssr.auth.updateUser({
-      data: { strava_athlete_id: tokens.athlete.id },
+      data: { strava_athlete_id: tokens.athlete.id, has_profile: true },
     })
 
     return NextResponse.redirect(new URL('/home', req.url))

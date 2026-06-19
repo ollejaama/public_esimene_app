@@ -31,7 +31,7 @@ export default async function SettingsPage() {
 
   const [{ data: zoneData }, { data: profileData }, { data: userSettingsData }] = await Promise.all([
     db.from('hr_zone_settings').select('*').eq('user_id', session.userId).maybeSingle(),
-    db.from('profiles').select('last_synced_at').eq('user_id', session.userId).single(),
+    db.from('profiles').select('last_synced_at, strava_athlete_id').eq('user_id', session.userId).maybeSingle(),
     db.from('user_settings').select('*').eq('user_id', session.userId).maybeSingle(),
   ])
 
@@ -70,7 +70,22 @@ export default async function SettingsPage() {
 
         <Card className="p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Strava Sync</h2>
-          <StravaSyncSection lastSyncedAt={profileData?.last_synced_at ?? null} />
+          {profileData?.strava_athlete_id ? (
+            <StravaSyncSection lastSyncedAt={profileData.last_synced_at ?? null} />
+          ) : (
+            <div>
+              <p className="font-sans text-[14px] text-atlas-muted mb-4">
+                Connect your Strava account to start syncing activities.
+              </p>
+              <a
+                href="/api/auth/strava"
+                className="inline-flex items-center font-sans text-[13px] font-semibold tracking-[0.04em] px-5 py-3 hover:opacity-85 transition-opacity"
+                style={{ background: '#FC4C02', color: '#fff' }}
+              >
+                Connect with Strava →
+              </a>
+            </div>
+          )}
         </Card>
 
       </div>

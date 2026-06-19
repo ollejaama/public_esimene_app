@@ -15,7 +15,7 @@ export default async function HomePage() {
     .from('profiles')
     .select('strava_athlete_id')
     .eq('user_id', session.userId)
-    .single()
+    .maybeSingle()
 
   const sections = [
     {
@@ -41,6 +41,24 @@ export default async function HomePage() {
         <h1 className="text-xl font-semibold text-gray-900">Training Analytics</h1>
         <p className="text-sm text-gray-500 mt-1">Where would you like to go?</p>
       </div>
+
+      {!profile?.strava_athlete_id && (
+        <div className="mb-8 border border-atlas-rule bg-atlas-panel p-6" style={{ maxWidth: 480 }}>
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted mb-2">
+            Get started
+          </p>
+          <p className="font-serif text-[20px] leading-snug tracking-[-0.02em] text-atlas-ink mb-4">
+            Connect Strava to sync your activities.
+          </p>
+          <a
+            href="/api/auth/strava"
+            className="inline-flex items-center font-sans text-[13px] font-semibold tracking-[0.04em] px-5 py-3 hover:opacity-85 transition-opacity"
+            style={{ background: '#FC4C02', color: '#fff' }}
+          >
+            Connect with Strava →
+          </a>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-5">
         {sections.map((section) => (
