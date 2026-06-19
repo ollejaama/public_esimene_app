@@ -1,16 +1,12 @@
-import { AppShell } from '@/components/layout/AppShell'
-import { getSession } from '@/lib/session'
+import { NextRequest, NextResponse } from 'next/server'
+import { getSessionFromRequest } from '@/lib/session'
 import { createServiceClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { CoachDashboard } from './CoachDashboard'
 
-export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Coach — Atlas' }
-
-export default async function CoachPage() {
-  const session = await getSession()
-  if (!session) redirect('/login')
-  if (session.role !== 'coach') redirect('/home')
+export async function GET(req: NextRequest) {
+  const session = await getSessionFromRequest(req)
+  if (!session || session.role !== 'coach') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const db = createServiceClient()
 
@@ -26,6 +22,7 @@ export default async function CoachPage() {
       .order('created_at', { ascending: true }),
   ])
 
+  // Build a map of athleteId → teamName for linked athletes
   const athleteTeamMap = new Map<string, string>()
   for (const team of teams ?? []) {
     for (const member of (team.team_members as { athlete_id: string }[]) ?? []) {
@@ -44,26 +41,11 @@ export default async function CoachPage() {
     }
   })
 
-  const teamsData = (teams ?? []).map((t) => ({
+  const teamsWithCount = (teams ?? []).map((t) => ({
     id: t.id,
     name: t.name,
     memberCount: (t.team_members as unknown[])?.length ?? 0,
   }))
 
-  return (
-    <AppShell>
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-atlas-muted">
-            Coach dashboard
-          </p>
-          <h1 className="font-serif text-[56px] tracking-[-0.03em] leading-[1.05] text-atlas-ink mt-1.5">
-            My <em>athletes</em>
-          </h1>
-        </div>
-      </div>
-
-      <CoachDashboard initialAthletes={athletes} initialTeams={teamsData} />
-    </AppShell>
-  )
+  return NextResponse.json({ athletes, teams: teamsWithCount })
 }

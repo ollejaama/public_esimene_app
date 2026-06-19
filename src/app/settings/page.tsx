@@ -3,8 +3,9 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { HRZoneForm } from '@/components/settings/HRZoneForm'
 import { UserSettingsForm } from '@/components/settings/UserSettingsForm'
 import { StravaSyncSection } from '@/components/settings/StravaSyncSection'
+import { TeamsCoachesSection } from '@/components/settings/TeamsCoachesSection'
 import { getSession } from '@/lib/session'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient, createSSRClient } from '@/lib/supabase/server'
 import { Card } from '@/components/ui/Card'
 import { redirect } from 'next/navigation'
 
@@ -29,11 +30,52 @@ export default async function SettingsPage() {
 
   const db = createServiceClient()
 
-  const [{ data: zoneData }, { data: profileData }, { data: userSettingsData }] = await Promise.all([
+  // Get athlete's email for invite lookup
+  const ssr = createSSRClient()
+  const { data: { user } } = await ssr.auth.getUser()
+  const userEmail = user?.email ?? ''
+
+  const [
+    { data: zoneData },
+    { data: profileData },
+    { data: userSettingsData },
+    { data: pendingInvitesRaw },
+    { data: coachLinkRaw },
+    { data: teamMemberRaw },
+  ] = await Promise.all([
     db.from('hr_zone_settings').select('*').eq('user_id', session.userId).maybeSingle(),
     db.from('profiles').select('last_synced_at, strava_athlete_id').eq('user_id', session.userId).maybeSingle(),
     db.from('user_settings').select('*').eq('user_id', session.userId).maybeSingle(),
+    userEmail
+      ? db.from('invites').select('id, coach_id, team_id, status, profiles!invites_coach_id_fkey(display_name), teams(name)').eq('invitee_email', userEmail).eq('status', 'pending')
+      : Promise.resolve({ data: [] }),
+    db.from('coach_athlete_links').select('coach_id, linked_at, profiles!coach_athlete_links_coach_id_fkey(display_name)').eq('athlete_id', session.userId).maybeSingle(),
+    db.from('team_members').select('team_id, joined_at, teams!inner(name, profiles!teams_coach_id_fkey(display_name))').eq('athlete_id', session.userId).is('left_at', null).maybeSingle(),
   ])
+
+  // Shape data for TeamsCoachesSection
+  const pendingInvites = (pendingInvitesRaw ?? []).map((inv: any) => ({
+    id: inv.id,
+    coachName: inv.profiles?.display_name ?? 'Coach',
+    teamName: inv.teams?.name ?? null,
+  }))
+
+  const coachLink = coachLinkRaw
+    ? {
+        coachId: coachLinkRaw.coach_id,
+        coachName: (coachLinkRaw.profiles as any)?.display_name ?? 'Coach',
+        linkedAt: coachLinkRaw.linked_at,
+      }
+    : null
+
+  const teamMembership = teamMemberRaw
+    ? {
+        teamId: teamMemberRaw.team_id,
+        teamName: (teamMemberRaw.teams as any)?.name ?? 'Team',
+        coachName: (teamMemberRaw.teams as any)?.profiles?.display_name ?? 'Coach',
+        joinedAt: teamMemberRaw.joined_at,
+      }
+    : null
 
   const zones = zoneData
     ? {
@@ -67,6 +109,17 @@ export default async function SettingsPage() {
             show_lactate: userSettingsData?.show_lactate ?? false,
           }} />
         </Card>
+
+        {session.role === 'athlete' && (
+          <Card className="p-6">
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Coach & Team</h2>
+            <TeamsCoachesSection
+              pendingInvites={pendingInvites}
+              coachLink={coachLink}
+              teamMembership={teamMembership}
+            />
+          </Card>
+        )}
 
         <Card className="p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Strava Sync</h2>

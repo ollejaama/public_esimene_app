@@ -65,6 +65,18 @@ export function Sidebar({ role = 'athlete' }: { athleteName?: string; role?: 'at
             Settings
           </Link>
         )}
+        {role === 'coach' && (
+          <Link
+            href="/coach"
+            className={`block font-sans text-xs transition-colors ${
+              pathname.startsWith('/coach')
+                ? 'text-atlas-ink'
+                : 'text-atlas-muted hover:text-atlas-ink'
+            }`}
+          >
+            My athletes
+          </Link>
+        )}
         <form action="/api/auth/logout" method="POST">
           <button
             type="submit"

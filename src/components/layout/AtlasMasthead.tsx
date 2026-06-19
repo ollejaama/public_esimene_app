@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 const CHAPTERS: Record<string, [string, string]> = {
   '/activities': ['02', 'Calendar'],
@@ -58,6 +59,7 @@ export function AtlasMasthead({ athleteName, role }: { athleteName?: string; rol
         <span className="font-mono text-[10px] tracking-[0.08em] text-atlas-muted">
           {userLabel}
         </span>
+        <NotificationBell />
         <button
           onClick={toggleTheme}
           className="border border-atlas-rule bg-transparent text-atlas-ink font-mono text-[10px] tracking-[0.1em] uppercase px-3 py-1.5 hover:border-atlas-muted transition-colors"
