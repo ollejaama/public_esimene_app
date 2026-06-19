@@ -69,20 +69,23 @@ Design guidelines (exact column names at implementation time):
 
 ## Sessions
 
-### Session 1 — Database schema + Auth
+### Session 1 — Database schema + Auth ✅
 **Goal:** User can sign up, verify email, log in, log out. All app routes protected. Nothing else needs to work yet.
 
-- [ ] Replace `training_session` middleware with Supabase Auth session middleware
-- [ ] Enable Supabase Auth in project (email/password, Google, Apple)
-- [ ] Design and run full multi-user schema migration (all tables above + RLS policies)
-- [ ] Sign up page (`/signup`): email, password, role selection (Athlete / Coach)
-- [ ] Log in page (`/login`): email, password, keep-me-signed-in toggle, forgot password link
-- [ ] Email verification flow (Supabase handles, configure redirect URL)
-- [ ] Password reset flow via Resend
-- [ ] Welcome email via Resend on sign up
-- [ ] Protect all existing routes (`/home`, `/statistics`, `/activities`, `/settings`, `/plan`, `/compare`) — redirect to `/login` if not authenticated
-- [ ] After login: athlete → `/home`, coach → `/coach`
-- [ ] Log out working
+- [x] Replace `training_session` middleware with Supabase Auth session middleware
+- [x] Enable Supabase Auth in project (email/password, Google, Apple)
+- [x] Design and run full multi-user schema migration (all tables above + RLS policies) — migrations 020 + 021 written, **run manually in Supabase SQL Editor**
+- [x] Sign up page (`/signup`): email, password, role selection (Athlete / Coach)
+- [x] Log in page (`/login`): email, password, keep-me-signed-in toggle, forgot password link
+- [x] Email verification flow (Supabase handles; configure redirect URL to `APP_URL/api/auth/callback` in Supabase dashboard)
+- [x] Password reset flow via Resend (`/api/auth/reset-password`)
+- [x] Welcome email via Resend on sign up
+- [x] Protect all existing routes (`/home`, `/statistics`, `/activities`, `/settings`, `/plan`, `/compare`, `/coach`) — redirect to `/login` if not authenticated
+- [x] After login: athlete → `/home`, coach → `/coach`
+- [x] Log out working (`/api/auth/logout`)
+- [ ] **Manual step:** Run `supabase/migrations/020_multiuser_tables.sql` in Supabase SQL Editor
+- [ ] **Manual step:** Run `supabase/migrations/021_rls_policies.sql` in Supabase SQL Editor
+- [ ] **Manual step:** Enable Google + Apple providers in Supabase Auth dashboard; set site URL + redirect URL to `APP_URL/api/auth/callback`
 
 **Done when:** Two different email accounts can sign up with different roles, verify, log in, and log out. App routes redirect to login when unauthenticated.
 

@@ -1,69 +1,62 @@
-import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { SessionPayload } from '@/lib/supabase/types'
 
-const COOKIE_NAME = 'training_session'
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
-
-function getSecret(): Uint8Array {
-  const secret = process.env.SESSION_SECRET
-  if (!secret) throw new Error('SESSION_SECRET is not set')
-  return new TextEncoder().encode(secret)
+function makeSupabaseFromCookies(cookieStore: ReturnType<typeof cookies>) {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet) => {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Server Component context — cookie writes handled by middleware
+          }
+        },
+      },
+    }
+  )
 }
 
-export async function signSession(payload: SessionPayload): Promise<string> {
-  return new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('30d')
-    .sign(getSecret())
-}
-
-export async function verifySession(token: string): Promise<SessionPayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, getSecret())
-    const p = payload as unknown as SessionPayload
-    return { ...p, role: p.role ?? 'athlete' }
-  } catch {
-    return null
+// Read session from Next.js cookies() — for Server Components and Server Actions.
+export async function getSession(): Promise<SessionPayload | null> {
+  const cookieStore = cookies()
+  const supabase = makeSupabaseFromCookies(cookieStore)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  return {
+    userId: user.id,
+    role: (user.user_metadata?.role ?? 'athlete') as 'athlete' | 'coach',
+    stravaAthleteId: user.user_metadata?.strava_athlete_id ?? 0,
   }
 }
 
-// Set session cookie on a NextResponse
-export async function setSessionCookie(res: NextResponse, payload: SessionPayload): Promise<void> {
-  const token = await signSession(payload)
-  res.cookies.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: COOKIE_MAX_AGE,
-    path: '/',
-  })
-}
-
-// Clear session cookie
-export function clearSessionCookie(res: NextResponse): void {
-  res.cookies.set(COOKIE_NAME, '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 0,
-    path: '/',
-  })
-}
-
-// Read session from a NextRequest (middleware / API routes)
+// Read session from a NextRequest — for middleware and API routes.
 export async function getSessionFromRequest(req: NextRequest): Promise<SessionPayload | null> {
-  const token = req.cookies.get(COOKIE_NAME)?.value
-  if (!token) return null
-  return verifySession(token)
-}
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => req.cookies.getAll(),
+        setAll: () => {
+          // API route context — caller sets cookies on the response directly
+        },
+      },
+    }
+  )
 
-// Read session from Next.js cookies() helper (Server Components / Server Actions)
-export async function getSession(): Promise<SessionPayload | null> {
-  const cookieStore = cookies()
-  const token = cookieStore.get(COOKIE_NAME)?.value
-  if (!token) return null
-  return verifySession(token)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  return {
+    userId: user.id,
+    role: (user.user_metadata?.role ?? 'athlete') as 'athlete' | 'coach',
+    stravaAthleteId: user.user_metadata?.strava_athlete_id ?? 0,
+  }
 }

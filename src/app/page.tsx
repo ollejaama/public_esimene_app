@@ -8,7 +8,6 @@ export default function LandingPage({
   const errorMessages: Record<string, string> = {
     strava_denied: 'Strava authorization was denied.',
     auth_failed: 'Authentication failed. Please try again.',
-    no_athlete: 'No athlete profile found. Please log in as an athlete first.',
   }
   const errorMessage = searchParams.error ? errorMessages[searchParams.error] : null
 
@@ -70,56 +69,53 @@ export default function LandingPage({
       {/* Right: sign-in cards */}
       <div className="flex flex-col gap-6" style={{ padding: '80px 64px' }}>
         <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-atlas-muted mb-2">
-          Sign in
+          Get started
         </p>
 
-        {/* Athlete card */}
+        {/* Sign up card */}
         <div className="bg-atlas-panel border border-atlas-rule" style={{ padding: 32 }}>
           <div className="flex justify-between items-start">
             <div>
               <span className="font-mono text-[11px] tracking-[0.15em] text-atlas-faint">I.</span>
               <h3 className="font-serif text-[32px] leading-none tracking-[-0.02em] text-atlas-ink mt-1.5">
-                The <em>athlete</em>
+                New here
               </h3>
             </div>
             <span className="text-[22px] text-atlas-ink">↗</span>
           </div>
           <p className="font-sans text-[14px] leading-[1.5] text-atlas-muted mt-3 mb-7">
-            Bring your Strava history. Activities will sync, sort themselves,
-            and quietly accumulate into a season.
+            Create an account as an athlete or coach.
+            Athletes connect Strava after signing up.
           </p>
           <Link
-            href="/api/auth/strava"
-            className="inline-flex items-center gap-2.5 font-sans text-[13px] font-semibold tracking-[0.04em] px-5 py-3.5 hover:opacity-85 transition-opacity"
-            style={{ background: 'var(--atlas-accent)', color: '#fbf7ee' }}
+            href="/signup"
+            className="inline-flex items-center font-sans text-[13px] font-semibold tracking-[0.04em] px-5 py-3.5 hover:opacity-85 transition-opacity"
+            style={{ background: 'var(--atlas-ink)', color: 'var(--atlas-bg)' }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.169" />
-            </svg>
-            Connect with Strava
+            Create account →
           </Link>
         </div>
 
-        {/* Coach card */}
+        {/* Sign in card */}
         <div className="border border-atlas-rule" style={{ padding: 32 }}>
           <div className="flex justify-between items-start">
             <div>
               <span className="font-mono text-[11px] tracking-[0.15em] text-atlas-faint">II.</span>
               <h3 className="font-serif text-[32px] leading-none tracking-[-0.02em] text-atlas-ink mt-1.5">
-                The <em>coach</em>
+                Returning
               </h3>
             </div>
             <span className="text-[22px] text-atlas-muted">→</span>
           </div>
           <p className="font-sans text-[14px] leading-[1.5] text-atlas-muted mt-3 mb-7">
-            Read-only access. No Strava account required —
-            follow your athlete&rsquo;s training as if you were turning pages.
+            Sign in with your email and password,
+            or continue with Google or Apple.
           </p>
           <Link
-            href="/api/auth/coach"
+            href="/login"
             className="inline-flex items-center font-sans text-[13px] font-medium border border-atlas-ink text-atlas-ink px-5 py-3.5 hover:opacity-70 transition-opacity"
           >
-            Continue as coach →
+            Sign in →
           </Link>
         </div>
 

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.103.0",
     "@types/leaflet": "^1.9.21",
     "@vercel/functions": "^3.5.1",
@@ -21,6 +22,7 @@
     "react-is": "^19.2.5",
     "react-leaflet": "^4.2.1",
     "recharts": "^3.8.1",
+    "resend": "^6.14.0",
     "tailwind-merge": "^3.5.0",
     "uuid": "^13.0.0"
   },

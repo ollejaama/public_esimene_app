@@ -1,28 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { jwtVerify } from 'jose'
+import { createServerClient } from '@supabase/ssr'
 
-const COOKIE_NAME = 'training_session'
-
-// Lightweight Edge-compatible session check.
-// Full jose JWS verification works in Edge — only JWE (encryption) needs Node.js APIs.
 export async function middleware(req: NextRequest): Promise<NextResponse> {
-  const token = req.cookies.get(COOKIE_NAME)?.value
+  let response = NextResponse.next({ request: req })
 
-  if (!token) {
-    return NextResponse.redirect(new URL('/', req.url))
-  }
-
-  try {
-    const secret = new TextEncoder().encode(process.env.SESSION_SECRET!)
-    const { payload } = await jwtVerify(token, secret)
-    const role = (payload as Record<string, unknown>).role ?? 'athlete'
-    if (role === 'coach' && req.nextUrl.pathname.startsWith('/settings')) {
-      return NextResponse.redirect(new URL('/home', req.url))
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => req.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+          response = NextResponse.next({ request: req })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
     }
-    return NextResponse.next()
-  } catch {
-    return NextResponse.redirect(new URL('/', req.url))
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.redirect(new URL('/login', req.url))
   }
+
+  const role = user.user_metadata?.role ?? 'athlete'
+  if (role === 'coach' && req.nextUrl.pathname.startsWith('/settings')) {
+    return NextResponse.redirect(new URL('/home', req.url))
+  }
+
+  return response
 }
 
 export const config = {
@@ -33,5 +43,6 @@ export const config = {
     '/settings/:path*',
     '/plan/:path*',
     '/compare/:path*',
+    '/coach/:path*',
   ],
 }
