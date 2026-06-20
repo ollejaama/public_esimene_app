@@ -21,6 +21,17 @@ const ATHLETE_NAV_SECTIONS = [
   },
 ]
 
+const COACH_MAIN_NAV = [
+  {
+    label: 'Plan',
+    items: [{ href: '/plan', label: 'Plan' }],
+  },
+  {
+    label: 'Compare',
+    items: [{ href: '/compare', label: 'Compare' }],
+  },
+]
+
 export function Sidebar({ role = 'athlete' }: { athleteName?: string; role?: 'athlete' | 'coach' }) {
   const pathname = usePathname()
 
@@ -39,7 +50,11 @@ export function Sidebar({ role = 'athlete' }: { athleteName?: string; role?: 'at
       ]
     : []
 
-  const navSections = role === 'coach' ? coachAthleteNav : ATHLETE_NAV_SECTIONS
+  const navSections = role !== 'coach'
+    ? ATHLETE_NAV_SECTIONS
+    : viewingAthleteId
+      ? coachAthleteNav
+      : COACH_MAIN_NAV
 
   return (
     <aside className="fixed left-0 top-[53px] h-[calc(100vh-53px)] w-48 border-r border-atlas-rule bg-atlas-bg flex flex-col z-40">

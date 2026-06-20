@@ -15,6 +15,7 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [responding, setResponding] = useState<string | null>(null)
+  const [responded, setResponded] = useState<Record<string, 'accept' | 'decline'>>({})
   const ref = useRef<HTMLDivElement>(null)
 
   async function fetchNotifications() {
@@ -51,13 +52,20 @@ export function NotificationBell() {
 
   async function respond(inviteId: string, action: 'accept' | 'decline') {
     setResponding(inviteId)
-    await fetch(`/api/invites/${inviteId}/respond`, {
+    const res = await fetch(`/api/invites/${inviteId}/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
     })
     setResponding(null)
-    fetchNotifications()
+    if (res.ok) {
+      setResponded((prev) => ({ ...prev, [inviteId]: action }))
+      setTimeout(() => {
+        setNotifications((prev) =>
+          prev.filter((n) => n.type !== 'coach_invite' || (n.payload.inviteId as string) !== inviteId)
+        )
+      }, 1500)
+    }
   }
 
   return (
@@ -93,6 +101,7 @@ export function NotificationBell() {
                     payload={n.payload}
                     onRespond={respond}
                     responding={responding}
+                    respondedAction={responded[n.payload.inviteId as string] ?? null}
                   />
                 )}
                 {n.type === 'invite_accepted' && (
@@ -117,10 +126,12 @@ function CoachInviteNotification({
   payload,
   onRespond,
   responding,
+  respondedAction,
 }: {
   payload: Record<string, unknown>
   onRespond: (inviteId: string, action: 'accept' | 'decline') => void
   responding: string | null
+  respondedAction: 'accept' | 'decline' | null
 }) {
   const inviteId = payload.inviteId as string
   const coachName = payload.coachName as string
@@ -137,23 +148,29 @@ function CoachInviteNotification({
           ? `${coachName} invited you to join team "${teamName}"`
           : `${coachName} wants to follow your training`}
       </p>
-      <div className="flex gap-2">
-        <button
-          onClick={() => onRespond(inviteId, 'accept')}
-          disabled={isResponding}
-          className="font-mono text-[10px] tracking-[0.1em] uppercase px-3 py-1.5 disabled:opacity-50 transition-opacity"
-          style={{ background: 'var(--atlas-ink)', color: 'var(--atlas-bg)' }}
-        >
-          {isResponding ? '…' : 'Accept'}
-        </button>
-        <button
-          onClick={() => onRespond(inviteId, 'decline')}
-          disabled={isResponding}
-          className="font-mono text-[10px] tracking-[0.1em] uppercase px-3 py-1.5 border border-atlas-rule text-atlas-muted hover:text-atlas-ink transition-colors disabled:opacity-50"
-        >
-          Decline
-        </button>
-      </div>
+      {respondedAction ? (
+        <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-atlas-faint">
+          {respondedAction === 'accept' ? 'Accepted' : 'Declined'}
+        </p>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            onClick={() => onRespond(inviteId, 'accept')}
+            disabled={isResponding}
+            className="font-mono text-[10px] tracking-[0.1em] uppercase px-3 py-1.5 disabled:opacity-50 transition-opacity"
+            style={{ background: 'var(--atlas-ink)', color: 'var(--atlas-bg)' }}
+          >
+            {isResponding ? '…' : 'Accept'}
+          </button>
+          <button
+            onClick={() => onRespond(inviteId, 'decline')}
+            disabled={isResponding}
+            className="font-mono text-[10px] tracking-[0.1em] uppercase px-3 py-1.5 border border-atlas-rule text-atlas-muted hover:text-atlas-ink transition-colors disabled:opacity-50"
+          >
+            Decline
+          </button>
+        </div>
+      )}
     </div>
   )
 }

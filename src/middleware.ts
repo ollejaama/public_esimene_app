@@ -30,8 +30,8 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   const pathname = req.nextUrl.pathname
   const role = user.user_metadata?.role ?? 'athlete'
 
-  const athleteOnlyPaths = ['/home', '/activities', '/statistics', '/plan', '/compare', '/settings']
-  if (role === 'coach' && athleteOnlyPaths.some((p) => pathname.startsWith(p))) {
+  const coachRedirectPaths = ['/home', '/activities', '/statistics', '/settings']
+  if (role === 'coach' && coachRedirectPaths.some((p) => pathname.startsWith(p))) {
     return NextResponse.redirect(new URL('/coach', req.url))
   }
 
