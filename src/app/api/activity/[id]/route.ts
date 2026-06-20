@@ -21,14 +21,29 @@ export async function GET(
 
   const db = createServiceClient()
 
+  // Coach can view an athlete's activity by passing ?viewAs=athleteUserId
+  const viewAs = req.nextUrl.searchParams.get('viewAs')
+  let targetUserId = session.userId
+  if (viewAs) {
+    if (session.role !== 'coach') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const { data: link } = await db
+      .from('coach_athlete_links')
+      .select('athlete_id')
+      .eq('coach_id', session.userId)
+      .eq('athlete_id', viewAs)
+      .maybeSingle()
+    if (!link) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    targetUserId = viewAs
+  }
+
   const [{ data: activity }, { data: hrStream }, { data: gpsStream }, { data: zoneData }, { data: laps }, { data: lactate }, { data: intervalSets }] =
     await Promise.all([
-      db.from('activities').select('*').eq('id', params.id).eq('user_id', session.userId).single(),
+      db.from('activities').select('*').eq('id', params.id).eq('user_id', targetUserId).single(),
       db.from('activity_hr_streams').select('*').eq('activity_id', params.id).maybeSingle(),
       db.from('activity_gps_streams').select('*').eq('activity_id', params.id).maybeSingle(),
-      db.from('hr_zone_settings').select('*').eq('user_id', session.userId).maybeSingle(),
+      db.from('hr_zone_settings').select('*').eq('user_id', targetUserId).maybeSingle(),
       db.from('activity_laps').select('*').eq('activity_id', params.id).order('lap_index'),
-      db.from('lactate_measurements').select('*').eq('activity_id', params.id).eq('user_id', session.userId).order('created_at'),
+      db.from('lactate_measurements').select('*').eq('activity_id', params.id).eq('user_id', targetUserId).order('created_at'),
       db.from('interval_sets').select('*').eq('activity_id', params.id).order('set_order'),
     ])
 

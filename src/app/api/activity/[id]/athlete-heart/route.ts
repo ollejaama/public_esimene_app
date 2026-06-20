@@ -25,5 +25,22 @@ export async function PATCH(
     .eq('user_id', session.userId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notify the coach if heart was added (not removed)
+  if (athlete_heart) {
+    const [{ data: athleteProfile }, { data: coachLink }] = await Promise.all([
+      db.from('profiles').select('display_name').eq('user_id', session.userId).maybeSingle(),
+      db.from('coach_athlete_links').select('coach_id').eq('athlete_id', session.userId).maybeSingle(),
+    ])
+
+    if (coachLink) {
+      await db.from('notifications').insert({
+        user_id: coachLink.coach_id,
+        type: 'athlete_heart',
+        payload: { activityId: params.id, athleteName: athleteProfile?.display_name ?? 'Your athlete' },
+      })
+    }
+  }
+
   return NextResponse.json({ ok: true })
 }

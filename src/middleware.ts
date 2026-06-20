@@ -30,8 +30,9 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   const pathname = req.nextUrl.pathname
   const role = user.user_metadata?.role ?? 'athlete'
 
-  if (role === 'coach' && pathname.startsWith('/settings')) {
-    return NextResponse.redirect(new URL('/home', req.url))
+  const athleteOnlyPaths = ['/home', '/activities', '/statistics', '/plan', '/compare', '/settings']
+  if (role === 'coach' && athleteOnlyPaths.some((p) => pathname.startsWith(p))) {
+    return NextResponse.redirect(new URL('/coach', req.url))
   }
 
   // Redirect to onboarding if the user hasn't completed profile setup yet

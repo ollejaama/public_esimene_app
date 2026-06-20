@@ -98,8 +98,11 @@ export function NotificationBell() {
                 {n.type === 'invite_accepted' && (
                   <InviteAcceptedNotification payload={n.payload} />
                 )}
-                {n.type !== 'coach_invite' && n.type !== 'invite_accepted' && (
-                  <p className="font-sans text-[13px] text-atlas-muted">{n.type}</p>
+                {n.type === 'coach_comment' && (
+                  <CoachCommentNotification payload={n.payload} />
+                )}
+                {n.type === 'athlete_heart' && (
+                  <AthleteHeartNotification payload={n.payload} />
                 )}
               </div>
             ))
@@ -167,6 +170,34 @@ function InviteAcceptedNotification({ payload }: { payload: Record<string, unkno
         {teamName
           ? `${athleteName} joined your team "${teamName}"`
           : `${athleteName} accepted your coaching invite`}
+      </p>
+    </div>
+  )
+}
+
+function CoachCommentNotification({ payload }: { payload: Record<string, unknown> }) {
+  const coachName = payload.coachName as string
+  return (
+    <div>
+      <p className="font-mono text-[10px] tracking-[0.15em] uppercase text-atlas-muted mb-1">
+        Coach comment
+      </p>
+      <p className="font-sans text-[13px] text-atlas-ink">
+        {coachName} left a comment on your activity
+      </p>
+    </div>
+  )
+}
+
+function AthleteHeartNotification({ payload }: { payload: Record<string, unknown> }) {
+  const athleteName = payload.athleteName as string
+  return (
+    <div>
+      <p className="font-mono text-[10px] tracking-[0.15em] uppercase text-atlas-muted mb-1">
+        Reaction
+      </p>
+      <p className="font-sans text-[13px] text-atlas-ink">
+        {athleteName} reacted to your comment
       </p>
     </div>
   )

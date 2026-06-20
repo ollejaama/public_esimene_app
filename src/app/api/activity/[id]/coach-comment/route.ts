@@ -14,6 +14,25 @@ export async function PATCH(
   const coach_comment = typeof body.coach_comment === 'string' ? body.coach_comment.trim() || null : null
 
   const db = createServiceClient()
+
+  // Get activity to find the athlete (owner) and verify coach-athlete link
+  const { data: activity } = await db
+    .from('activities')
+    .select('user_id')
+    .eq('id', params.id)
+    .maybeSingle()
+
+  if (!activity) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const { data: link } = await db
+    .from('coach_athlete_links')
+    .select('athlete_id')
+    .eq('coach_id', session.userId)
+    .eq('athlete_id', activity.user_id)
+    .maybeSingle()
+
+  if (!link) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const { error } = await db
     .from('activities')
     .update({
@@ -22,8 +41,23 @@ export async function PATCH(
       coach_comment_unread: coach_comment ? true : false,
     })
     .eq('id', params.id)
-    .eq('user_id', session.userId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notify athlete if comment was added (not cleared)
+  if (coach_comment) {
+    const { data: coachProfile } = await db
+      .from('profiles')
+      .select('display_name')
+      .eq('user_id', session.userId)
+      .maybeSingle()
+
+    await db.from('notifications').insert({
+      user_id: activity.user_id,
+      type: 'coach_comment',
+      payload: { activityId: params.id, coachName: coachProfile?.display_name ?? 'Your coach' },
+    })
+  }
+
   return NextResponse.json({ ok: true })
 }

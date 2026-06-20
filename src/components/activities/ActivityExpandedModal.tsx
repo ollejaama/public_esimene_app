@@ -23,6 +23,7 @@ interface ActivityExpandedModalProps {
   activityId: string
   onClose: () => void
   isCoach?: boolean
+  viewAsUserId?: string
   showFeeling?: boolean
   showLactate?: boolean
 }
@@ -105,7 +106,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function ActivityExpandedModal({ activityId, onClose, isCoach = false, showFeeling = false, showLactate = false }: ActivityExpandedModalProps) {
+export function ActivityExpandedModal({ activityId, onClose, isCoach = false, viewAsUserId, showFeeling = false, showLactate = false }: ActivityExpandedModalProps) {
   const router = useRouter()
   const [detail, setDetail] = useState<ActivityDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -123,7 +124,7 @@ export function ActivityExpandedModal({ activityId, onClose, isCoach = false, sh
   useEffect(() => {
     setLoading(true)
     setError(null)
-    fetch(`/api/activity/${activityId}`)
+    fetch(`/api/activity/${activityId}${viewAsUserId ? `?viewAs=${viewAsUserId}` : ''}`)
       .then((r) => r.json())
       .then((data) => {
         setDetail(data)

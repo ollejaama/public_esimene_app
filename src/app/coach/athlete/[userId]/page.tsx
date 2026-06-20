@@ -77,6 +77,7 @@ export default async function CoachAthleteView({
         initialMonth={new Date(now.getFullYear(), now.getMonth(), 1)}
         restDayThresholdMinutes={zoneData?.rest_day_threshold_minutes ?? 0}
         isCoach={true}
+        viewAsUserId={params.userId}
         illnessEntries={illnessData ?? []}
         userSettings={{
           show_rpe: userSettingsData?.show_rpe ?? false,

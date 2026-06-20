@@ -14,17 +14,18 @@ interface TimeRangeSelectorProps {
   current: TimeRange
   offset: number
   periodLabel: string
+  basePath?: string
 }
 
-export function TimeRangeSelector({ current, offset, periodLabel }: TimeRangeSelectorProps) {
+export function TimeRangeSelector({ current, offset, periodLabel, basePath = '/statistics' }: TimeRangeSelectorProps) {
   const router = useRouter()
 
   function setRange(range: TimeRange) {
-    router.push(`/statistics?range=${range}&offset=0`)
+    router.push(`${basePath}?range=${range}&offset=0`)
   }
 
   function navigate(dir: number) {
-    router.push(`/statistics?range=${current}&offset=${offset + dir}`)
+    router.push(`${basePath}?range=${current}&offset=${offset + dir}`)
   }
 
   return (

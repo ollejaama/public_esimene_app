@@ -21,6 +21,7 @@ interface ActivityCalendarProps {
   initialMonth: Date
   restDayThresholdMinutes?: number
   isCoach?: boolean
+  viewAsUserId?: string
   illnessEntries?: IllnessLog[]
   userSettings?: UserSettings
 }
@@ -55,7 +56,7 @@ function toDateKey(date: Date): string {
 
 export function ActivityCalendar({
   activities, initialMonth, restDayThresholdMinutes = 0,
-  isCoach = false, illnessEntries = [], userSettings,
+  isCoach = false, viewAsUserId, illnessEntries = [], userSettings,
 }: ActivityCalendarProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialMonth)
@@ -232,6 +233,7 @@ export function ActivityCalendar({
           activityId={expandedActivityId}
           onClose={() => setExpandedActivityId(null)}
           isCoach={isCoach}
+          viewAsUserId={viewAsUserId}
           showFeeling={userSettings?.show_rpe ?? false}
           showLactate={userSettings?.show_lactate ?? false}
         />
