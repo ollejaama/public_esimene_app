@@ -8,10 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const q = req.nextUrl.searchParams.get('q')?.trim()
-  if (!q || q.length < 2) {
-    return NextResponse.json([])
-  }
+  const q = req.nextUrl.searchParams.get('q')?.trim() ?? ''
 
   const db = createServiceClient()
 
@@ -28,8 +25,11 @@ export async function GET(req: NextRequest) {
     .from('profiles')
     .select('user_id, display_name')
     .eq('role', 'athlete')
-    .ilike('display_name', `%${q}%`)
-    .limit(10)
+    .limit(20)
+
+  if (q.length > 0) {
+    query = query.ilike('display_name', `%${q}%`) as typeof query
+  }
 
   if (linkedIds.length > 0) {
     query = query.not('user_id', 'in', `(${linkedIds.join(',')})`) as typeof query

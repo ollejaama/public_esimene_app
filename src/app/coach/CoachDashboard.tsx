@@ -42,9 +42,17 @@ export function CoachDashboard({
 
   async function handleSearch(q: string) {
     setQuery(q)
-    if (q.length < 2) { setResults([]); return }
+    if (q.length < 1) { setResults([]); return }
     setSearching(true)
     const res = await fetch(`/api/athletes/search?q=${encodeURIComponent(q)}`)
+    const data = await res.json()
+    setResults(data)
+    setSearching(false)
+  }
+
+  async function showAll() {
+    setSearching(true)
+    const res = await fetch('/api/athletes/search?q=')
     const data = await res.json()
     setResults(data)
     setSearching(false)
@@ -131,16 +139,23 @@ export function CoachDashboard({
 
         {/* Search */}
         <div className="relative mb-6">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search by name…"
-            className="w-full bg-transparent border border-atlas-rule text-atlas-ink font-sans text-[14px] px-3 py-2.5 focus:outline-none focus:border-atlas-ink"
-            style={{ maxWidth: 420 }}
-          />
+          <div className="flex gap-2" style={{ maxWidth: 420 }}>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search by name…"
+              className="flex-1 bg-transparent border border-atlas-rule text-atlas-ink font-sans text-[14px] px-3 py-2.5 focus:outline-none focus:border-atlas-ink"
+            />
+            <button
+              onClick={showAll}
+              className="font-mono text-[10px] tracking-[0.1em] uppercase px-3 py-2 border border-atlas-rule text-atlas-muted hover:text-atlas-ink hover:border-atlas-muted transition-colors whitespace-nowrap"
+            >
+              Show all
+            </button>
+          </div>
 
-          {teams.length > 0 && query.length >= 2 && (
+          {teams.length > 0 && results.length > 0 && (
             <div className="mt-2" style={{ maxWidth: 420 }}>
               <label className="font-mono text-[10px] tracking-[0.1em] uppercase text-atlas-faint mr-2">
                 Invite to team:
