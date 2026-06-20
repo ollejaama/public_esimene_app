@@ -51,3 +51,9 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS notifications_user_unread
   ON notifications (user_id, read)
   WHERE read = false;
+
+-- Grant service_role access (bypasses RLS for server-side queries)
+GRANT ALL ON public.teams TO service_role;
+GRANT ALL ON public.coach_athlete_links TO service_role;
+GRANT ALL ON public.invites TO service_role;
+GRANT ALL ON public.notifications TO service_role;
