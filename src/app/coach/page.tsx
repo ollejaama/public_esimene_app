@@ -15,16 +15,17 @@ export default async function CoachPage() {
   const db = createServiceClient()
 
   const [{ data: links }, { data: teams }] = await Promise.all([
-    db
-      .from('coach_athlete_links')
-      .select('athlete_id, linked_at, profiles!inner(display_name, email)')
-      .eq('coach_id', session.userId),
-    db
-      .from('teams')
-      .select('id, name, team_members(athlete_id)')
-      .eq('coach_id', session.userId)
-      .order('created_at', { ascending: true }),
+    db.from('coach_athlete_links').select('athlete_id, linked_at').eq('coach_id', session.userId),
+    db.from('teams').select('id, name, team_members(athlete_id)').eq('coach_id', session.userId).order('created_at', { ascending: true }),
   ])
+
+  // Fetch profiles for linked athletes separately (no FK constraint for join)
+  const athleteIds = (links ?? []).map((l) => l.athlete_id)
+  const { data: profiles } = athleteIds.length > 0
+    ? await db.from('profiles').select('user_id, display_name, email').in('user_id', athleteIds)
+    : { data: [] }
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]))
 
   const athleteTeamMap = new Map<string, string>()
   for (const team of teams ?? []) {
@@ -34,11 +35,11 @@ export default async function CoachPage() {
   }
 
   const athletes = (links ?? []).map((link) => {
-    const profile = link.profiles as unknown as { display_name: string; email: string }
+    const profile = profileMap.get(link.athlete_id)
     return {
       userId: link.athlete_id,
-      displayName: profile.display_name ?? link.athlete_id,
-      email: profile.email,
+      displayName: profile?.display_name ?? link.athlete_id,
+      email: profile?.email ?? '',
       linkedAt: link.linked_at,
       teamName: athleteTeamMap.get(link.athlete_id) ?? null,
     }
